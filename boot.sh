@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-source ./config.sh
+source ./config.list
+
+# Login to fetch latest docker image
+docker login
 
 # Fetch latest image
 docker pull fossa/fossa:latest
@@ -18,7 +21,7 @@ if [ $(docker images -f "dangling=true" -q) ]; then
 fi;
 
 # run agents
-docker run
+docker run fossa/fossa:latest npm start:agent
 
 # run core server & tail
-docker run
+docker run fossa/fossa:latest npm start
