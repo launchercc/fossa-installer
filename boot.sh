@@ -5,15 +5,17 @@ source ./config.sh
 docker pull fossa/fossa:latest
 
 if [ $( docker ps -aq ) ]; then
-	# Kill running image
-	docker kill $(docker ps -aq);
-	
-	# Remove existing container
-	docker rm $(docker ps -aq)
+  # Kill running image
+  docker kill $(docker ps -aq);
+  
+  # Remove existing container
+  docker rm $(docker ps -aq)
 fi;
 
-# Remove image entirely
-docker rmi $(docker images -f "dangling=true" -q)
+if [ $(docker images -f "dangling=true" -q) ]; then
+  # Remove image entirely
+  docker rmi $(docker images -f "dangling=true" -q)
+fi;
 
 # run agents
 docker run
