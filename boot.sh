@@ -53,7 +53,7 @@ function start {
 }
 
 function stop {
-  printf "Stopping Fossa"
+  printf "Stopping Fossa!"
 
   current=$( runninginstances )
 
