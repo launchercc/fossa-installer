@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 source ./fossa_env.sh
 
+function runninginstances {
+  docker ps --filter='ancestor=fossa/fossa' -q
+}
+
 function isrunning {
-  [ $( docker ps --filter='ancestor=fossa/fossa' -q ) ];
+  [ $( runninginstances; ) ];
 }
 
 function init {
@@ -21,8 +25,6 @@ function init {
 
   # Fetch latest image
   docker pull fossa/fossa:latest
-
-  stop;
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -48,11 +50,13 @@ function start {
 }
 
 function stop {
+  current=$( runninginstances )
+
   # Kill running image
-  docker kill $(docker ps -aq)
+  docker kill ${current}
   
   # Remove existing container
-  docker rm $(docker ps -aq)
+  docker rm -f ${current}
 }
 
 case "$1" in
