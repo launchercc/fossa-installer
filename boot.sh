@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 . config.env
 
-trap "kill -- -$BASHPID" EXIT
-
 TOP_DIR=`dirname $0`
 
 function runninginstances {
@@ -113,6 +111,14 @@ case "$1" in
       stop;
     fi;
     start;
+    ;;
+
+    status)
+    if isrunning; then
+      echo "Fossa is running"
+    else
+      echo "Fossa is not running"
+    fi;
     ;;
 
     *)
