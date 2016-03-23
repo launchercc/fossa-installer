@@ -17,6 +17,8 @@ function init {
     exit 1;
   fi;
 
+  echo "Initializing Fossa";
+
   # Create directories
   if [ ! -d /var/data/fossa ]; then
     sudo mkdir -p /var/data/fossa
@@ -32,29 +34,40 @@ function init {
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
   fi;
+
+  echo "Fossa Initialized"
 }
 
 function start {
+  printf "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
+    printf "."
     docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent > /dev/null &
     (( NUMBER_OF_AGENTS-- ))
   done;
 
   # run core server
   docker run --env-file ${TOP_DIR}/config.env -p ${app__hostname}:80:80 -p ${app__hostname}:443:443 fossa/fossa:latest npm run start > /dev/null &
+  echo ".done!"
 }
 
 function stop {
+  printf "Stopping Fossa"
+
   current=$( runninginstances )
 
   # Kill running image
+  printf "."
   docker kill ${current}
   
   # Remove existing container
+  printf "."
   docker rm -f ${current}
+
+  printf ".done!"
 }
 
 case "$1" in
