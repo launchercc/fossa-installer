@@ -78,7 +78,7 @@ case "$1" in
       echo "Fossa is already running.";
       exit 1;
     fi;
-    start;
+    start $2;
     ;;
 
     stop)
