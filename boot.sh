@@ -33,12 +33,12 @@ function init {
 }
 
 function createdb {
-  if [ ! -d /var/data/fossa ]; then
+  if [ ! -d /var/data/fossa/db ]; then
     sudo mkdir -p /var/data/fossa/db
     sudo chown postgres /var/data/fossa/db
   fi;
 
-  sudo -u postgres $PG_CTL_BIN -D /var/data/fossa/db init
+  sudo -u postgres -H $PG_CTL_BIN -D /var/data/fossa/db initdb
 }
 
 function start {
@@ -106,3 +106,4 @@ case "$1" in
 esac
 
 exit 0
+
