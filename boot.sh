@@ -5,32 +5,6 @@ trap "kill -- -$BASHPID" EXIT
 
 TOP_DIR=`dirname $0`
 
-SPINNER_PID=0
-function startspinner {
-  if [ $SPINNER_PID -eq 0 ]; then
-    SPINNER_CMD=$( cat <<SPINNER
-CHARS=('-' '/' '|' '\\');
-i=0;
-while [ 1 ]; do
-  printf \${CHARS[\${i}]};
-  printf " "
-  sleep 0.1;
-  printf "\r\r";
-  (( i++ ));
-  (( i%=4 ));
-done;
-SPINNER
-)
-    bash -c "$SPINNER_CMD" &
-    SPINNER_PID=$!
-  fi;
-}
-
-function stopspinner {
-  kill $SPINNER_PID
-  SPINNER_PID=0
-}
-
 function runninginstances {
   docker ps --filter='ancestor=fossa/fossa' -q
 }
@@ -76,10 +50,8 @@ function upgrade {
 }
 
 function start {
-  echo "Starting Fossa!"
+  echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
-
-  startspinner
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
@@ -89,14 +61,10 @@ function start {
 
   # run core server
   docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
-
-  stopspinner
 }
 
 function stop {
-  echo "Stopping Fossa!"
-
-  startspinner
+  echo "Stopping Fossa"
 
   current=$( runninginstances )
 
@@ -105,8 +73,6 @@ function stop {
   
   # Remove existing container
   docker rm -f ${current} > /dev/null
-
-  stopspinner
 }
 
 case "$1" in
