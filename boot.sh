@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. config.env
 
 TOP_DIR=`dirname $0`
 
@@ -7,7 +8,7 @@ function runninginstances {
 }
 
 function isrunning {
-  [ $( runninginstances; ) ];
+  [ "$( runninginstances )" ]
 }
 
 function init {
@@ -35,10 +36,10 @@ function init {
 
 function start {
   # run agents
-  docker run --env-file ${TOP_DIR}/config.list fossa/fossa:latest npm run start:agent
+  docker run --env-file ${TOP_DIR}/config.list fossa/fossa:latest npm run start:agent > /dev/null &
 
   # run core server
-  docker run --env-file ${TOP_DIR}/config.list fossa/fossa:latest npm run start
+  docker run --env-file ${TOP_DIR}/config.list -p ${app__hostname}:80:80 -p ${app__hostname}:443:443 fossa/fossa:latest npm run start > /dev/null &
 }
 
 function stop {
@@ -84,10 +85,9 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $0 {start|stop|restart|init|createdb}"
+    echo "Usage: $0 {start|stop|restart|init}"
     exit 1
     ;;
 esac
 
 exit 0
-
