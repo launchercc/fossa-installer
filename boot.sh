@@ -50,8 +50,6 @@ function init {
   # Login to fetch latest docker image
   docker login
 
-  startspinner
-
   # Fetch latest image
   docker pull fossa/fossa:latest > /dev/null
 
@@ -59,8 +57,6 @@ function init {
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
   fi;
-
-  stopspinner
 
   echo "Fossa Initialized"
 }
@@ -68,8 +64,6 @@ function init {
 function upgrade {
   echo "Upgrading Fossa";
 
-  startspinner
-
   # Fetch latest image
   docker pull fossa/fossa:latest > /dev/null
 
@@ -78,14 +72,14 @@ function upgrade {
     docker rmi $(docker images -f "dangling=true" -q)
   fi;
 
-  stopspinner
-
   echo "Fossa Upgraded"
 }
 
 function start {
   echo "Starting Fossa!"
   NUMBER_OF_AGENTS=${1-4}
+
+  startspinner
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
@@ -95,10 +89,14 @@ function start {
 
   # run core server
   docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
+
+  stopspinner
 }
 
 function stop {
   echo "Stopping Fossa!"
+
+  startspinner
 
   current=$( runninginstances )
 
@@ -107,6 +105,8 @@ function stop {
   
   # Remove existing container
   docker rm -f ${current} > /dev/null
+
+  stopspinner
 }
 
 case "$1" in
