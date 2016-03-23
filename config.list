@@ -6,14 +6,14 @@
 # - External IP (accessible to your users) of the box running FOSSA
 # - SMTP server host, port (and username/password if applicable)
 # - Postgres host, port (and username/password if applicable)
-# - New database in Postgres named "fossa" (accessible to the db user if applicable)
+# - New database in Postgres named fossa (accessible to the db user if applicable)
 
 # ============================================================
 # STEP 1. Replace this with a new 64-CHARACTER SECRET KEY 
 # ============================================================
 # (http://www.sethcardoza.com/tools/random-password-generator/)
 
-secret="7cd9cb10627e15fc7510bacbf30694698d38becfc2edf635512df0475ba4e512"
+secret=7cd9cb10627e15fc7510bacbf30694698d38becfc2edf635512df0475ba4e512
 
 
 
@@ -21,7 +21,7 @@ secret="7cd9cb10627e15fc7510bacbf30694698d38becfc2edf635512df0475ba4e512"
 # STEP 2. Configure how users will reach your app
 # ============================================================
 
-app__hostname="localhost"
+app__hostname=localhost
 app__port=80
 
 
@@ -34,11 +34,11 @@ app__port=80
 # 
 # Enter the connection/auth information below:
 
-db__host="localhost"
+db__host=localhost
 # db__port=5432
-# db__username="postgres"
-# db__password=""
-# db__database="fossa"
+# db__username=postgres
+# db__password=
+# db__database=fossa
 
 
 
@@ -46,10 +46,10 @@ db__host="localhost"
 # STEP 4. Setup emails
 # ============================================================
 
-email__transport__options__host="localhost"
+email__transport__options__host=localhost
 email__transport__options__port=25
-# email__transport__options__auth__username="admin"
-# email__transport__options__auth__password=""
+# email__transport__options__auth__username=admin
+# email__transport__options__auth__password=
 
 
 
@@ -59,14 +59,14 @@ email__transport__options__port=25
 
 ## Github Enterprise
 
-# github__enabled="true"
-# github_version="3.0.0"
-# github_protocol="https"
-# github_host="github.my-GHE-enabled-company.com"
-# github_pathPrefix="/api/v3"
-# github__oauth2__client_id=""
-# github__oauth2__client_secret=""
-# github__oauth2__callback="" # do we need this?
+# github__enabled=true
+# github_version=3.0.0
+# github_protocol=https
+# github_host=github.my-GHE-enabled-company.com
+# github_pathPrefix=/api/v3
+# github__oauth2__client_id=
+# github__oauth2__client_secret=
+# github__oauth2__callback= # do we need this?
 
 ## Atlassian Bitbucket Server (Stash)
 #

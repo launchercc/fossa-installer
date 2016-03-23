@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source ./fossa_env.sh
+
+TOP_DIR=`dirname $0`
 
 function runninginstances {
   docker ps --filter='ancestor=fossa/fossa' -q
@@ -32,21 +33,12 @@ function init {
   fi;
 }
 
-function createdb {
-  if [ ! -d /var/data/fossa/db ]; then
-    sudo mkdir -p /var/data/fossa/db
-    sudo chown postgres /var/data/fossa/db
-  fi;
-
-  sudo -u postgres -H $PG_CTL_BIN -D /var/data/fossa/db initdb
-}
-
 function start {
   # run agents
-  docker run fossa/fossa:latest npm start:agent
+  docker run --env-file ${TOP_DIR}/config.list fossa/fossa:latest npm run start:agent
 
   # run core server
-  docker run fossa/fossa:latest npm start
+  docker run --env-file ${TOP_DIR}/config.list fossa/fossa:latest npm run start
 }
 
 function stop {
@@ -66,14 +58,6 @@ case "$1" in
       exit 1;
     fi;
     init;
-    ;;
-
-    createdb)
-    if isrunning; then
-      echo "Fossa is already running";
-      exit 1;
-    fi;
-    createdb;
     ;;
 
     start)
