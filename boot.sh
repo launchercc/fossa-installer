@@ -45,12 +45,12 @@ function start {
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
     printf "."
-    docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent > /dev/null &
+    docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent 2>&1 > /dev/null &
     (( NUMBER_OF_AGENTS-- ))
   done;
 
   # run core server
-  docker run --env-file ${TOP_DIR}/config.env -p ${app__hostname}:80:80 -p ${app__hostname}:443:443 fossa/fossa:latest npm run start > /dev/null &
+  docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
   echo ".done!"
 }
 
@@ -61,11 +61,11 @@ function stop {
 
   # Kill running image
   printf "."
-  docker kill ${current}
+  docker kill ${current} > /dev/null
   
   # Remove existing container
   printf "."
-  docker rm -f ${current}
+  docker rm -f ${current} > /dev/null
 
   printf ".done!"
 }
