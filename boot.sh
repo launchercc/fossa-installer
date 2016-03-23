@@ -39,7 +39,7 @@ function init {
 }
 
 function start {
-  printf "Starting Fossa!"
+  echo "Starting Fossa!"
   NUMBER_OF_AGENTS=${1-4}
 
   # run agents
@@ -53,7 +53,7 @@ function start {
 }
 
 function stop {
-  printf "Stopping Fossa!"
+  echo "Stopping Fossa!"
 
   current=$( runninginstances )
 
