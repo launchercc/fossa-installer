@@ -1,7 +1,35 @@
 #!/usr/bin/env bash
 . config.env
 
+trap "kill -- -$BASHPID" EXIT
+
 TOP_DIR=`dirname $0`
+
+SPINNER_PID=0
+function startspinner {
+  if [ $SPINNER_PID -eq 0 ]; then
+    SPINNER_CMD=$( cat <<SPINNER
+CHARS=('-' '/' '|' '\\');
+i=0;
+while [ 1 ]; do
+  printf \${CHARS[\${i}]};
+  printf " "
+  sleep 0.1;
+  printf "\r\r";
+  (( i++ ));
+  (( i%=4 ));
+done;
+SPINNER
+)
+    bash -c "$SPINNER_CMD" &
+    SPINNER_PID=$!
+  fi;
+}
+
+function stopspinner {
+  kill $SPINNER_PID
+  SPINNER_PID=0
+}
 
 function runninginstances {
   docker ps --filter='ancestor=fossa/fossa' -q
@@ -12,11 +40,6 @@ function isrunning {
 }
 
 function init {
-  if isrunning; then
-    echo "Fossa is already running";
-    exit 1;
-  fi;
-
   echo "Initializing Fossa";
 
   # Create directories
@@ -27,15 +50,37 @@ function init {
   # Login to fetch latest docker image
   docker login
 
+  startspinner
+
   # Fetch latest image
-  docker pull fossa/fossa:latest
+  docker pull fossa/fossa:latest > /dev/null
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
   fi;
 
+  stopspinner
+
   echo "Fossa Initialized"
+}
+
+function upgrade {
+  echo "Upgrading Fossa";
+
+  startspinner
+
+  # Fetch latest image
+  docker pull fossa/fossa:latest > /dev/null
+
+  if [ $(docker images -f "dangling=true" -q) ]; then
+    # Remove image entirely
+    docker rmi $(docker images -f "dangling=true" -q)
+  fi;
+
+  stopspinner
+
+  echo "Fossa Upgraded"
 }
 
 function start {
@@ -66,6 +111,14 @@ function stop {
 
 case "$1" in
     init)
+    if isrunning; then
+      echo "Fossa is already running";
+      exit 1;
+    fi;
+    init;
+    ;;
+
+    upgrade)
     if isrunning; then
       echo "Fossa is already running";
       exit 1;
