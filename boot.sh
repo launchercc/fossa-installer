@@ -35,9 +35,12 @@ function init {
 }
 
 function start {
-  # run agents
+  NUMBER_OF_AGENTS=${1-4}
 
-  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent > /dev/null &
+  # run agents
+  while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
+    docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent > /dev/null &; (( NUMBER_OF_AGENTS-- ));
+  done;
 
   # run core server
   docker run --env-file ${TOP_DIR}/config.env -p ${app__hostname}:80:80 -p ${app__hostname}:443:443 fossa/fossa:latest npm run start > /dev/null &
