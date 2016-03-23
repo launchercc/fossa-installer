@@ -3,6 +3,10 @@
 
 TOP_DIR=`dirname $0`
 
+function allinstances {
+  docker ps --filter='ancestor=fossa/fossa' -aq
+}
+
 function runninginstances {
   docker ps --filter='ancestor=fossa/fossa' -q
 }
@@ -23,7 +27,7 @@ function init {
   docker login
 
   # Fetch latest image
-  docker pull fossa/fossa:latest > /dev/null
+  docker pull fossa/fossa:latest
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -37,7 +41,7 @@ function upgrade {
   echo "Upgrading Fossa";
 
   # Fetch latest image
-  docker pull fossa/fossa:latest > /dev/null
+  docker pull fossa/fossa:latest
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -67,10 +71,10 @@ function stop {
   current=$( runninginstances )
 
   # Kill running image
-  docker kill ${current} 2>&1 > /dev/null
+  docker kill $( runninginstances ) 2>&1 > /dev/null
   
   # Remove existing container
-  docker rm -f ${current} 2>&1 > /dev/null
+  docker rm -f $( allinstances ) 2>&1 > /dev/null
 }
 
 case "$1" in
