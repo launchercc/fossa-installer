@@ -67,10 +67,10 @@ function stop {
   current=$( runninginstances )
 
   # Kill running image
-  docker kill ${current} > /dev/null
+  docker kill ${current} 2>&1 > /dev/null
   
   # Remove existing container
-  docker rm -f ${current} > /dev/null
+  docker rm -f ${current} 2>&1 > /dev/null
 }
 
 case "$1" in
