@@ -55,14 +55,17 @@ function start {
   echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
 
+  # Migrate database
+  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest tools/fossa.sh sequelize db:migrate
+
+  # run core server
+  docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
+
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
     docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent 2>&1 > /dev/null &
     (( NUMBER_OF_AGENTS-- ))
   done;
-
-  # run core server
-  docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
 }
 
 function stop {
