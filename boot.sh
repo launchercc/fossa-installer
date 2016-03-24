@@ -56,7 +56,7 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest tools/fossa.sh sequelize db:migrate
+  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run migrate
 
   # run core server
   docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
