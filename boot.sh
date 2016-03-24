@@ -59,11 +59,13 @@ function start {
   docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run migrate
 
   # run core server
-  docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 fossa/fossa:latest npm run start 2>&1 > /dev/null &
+  docker run --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data fossa/fossa:latest npm run start 2>&1 > /dev/null &
+
+  current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run start:agent 2>&1 > /dev/null &
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data fossa/fossa:latest npm run start:agent 2>&1 > /dev/null &
     (( NUMBER_OF_AGENTS-- ))
   done;
 }
