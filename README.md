@@ -12,7 +12,7 @@
 
 - SMTP server 
 
-- Postgres on a machine with 16+ GB RAM, 30+ GB HDD
+- Postgres 9.5+ on a machine with >16 GB RAM, >30 GB HDD
 
 
 **Prepare the following:**
@@ -23,3 +23,4 @@
 - Database in Postgres named "fossa", accessible to the user
 
 Make sure all of these endpoints are accessible from the machine running FOSSA.
+
