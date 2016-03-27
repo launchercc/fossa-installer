@@ -3,12 +3,12 @@
 ## Prerequisites
 
 - Linux Box with:
-    - Ubuntu 14.04
+    - Ubuntu 14.04 LTS
     - Static IP address (accessible to users in your organization)
     - >16 GB RAM
     - >30 GB HDD
-    - Docker 1.3+
-    - Bash 3.2+
+    - Docker 1.3+, Bash 3.2+, curl & tar 
+    - Port 80 (or whatever configured) exposed in firewall
 
 - SMTP server 
 

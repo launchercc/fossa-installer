@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . config.env
 
-TOP_DIR=`dirname $0`
+TOP_DIR="$(dirname "$(readlink -f "$0")")"
 
 function allinstances {
   docker ps --filter='ancestor=fossa/fossa' -aq
@@ -131,7 +131,7 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $0 {start|stop|restart|init}"
+    echo "Usage: $0 {start|stop|restart|init|upgrade}"
     exit 1
     ;;
 esac
