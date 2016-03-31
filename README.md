@@ -14,7 +14,7 @@ View `PREINSTALL.md` on a full guide on how to set up the box.
 
 - SMTP server 
 
-- Postgres 9.5+ on a machine with >16 GB RAM, >30 GB HDD
+- Postgres 9.3+ on a machine with >16 GB RAM, >30 GB HDD
 
 
 **Prepare the following:**
