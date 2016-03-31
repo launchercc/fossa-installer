@@ -63,7 +63,9 @@ TBA
 
 ## 4. Run the FOSSA installer
 
-```
+As part of the installer, you will be prompted for a `username, password and email`.  Contact `support@fossa.io` if you haven't already been given those credentials.
+
+```bash
 # Download and run the installer
 sudo $(mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.2.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && sudo ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init)
 
@@ -83,7 +85,7 @@ fossa start 4
 
 If you are having trouble connecting to postgres, try this:
 
-```
+```bash
 sudo ufw disable
 
 # Find the line net.ipv6.conf.default.forwarding=1 and uncomment it in the file underneath:
