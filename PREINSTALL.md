@@ -25,6 +25,13 @@ usermod -aG docker ubuntu
 # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
 echo "DOCKER_OPTS=\"--storage-driver=devicemapper\"" >> /etc/default/docker
 
+# Configure forwarding
+sudo ufw disable
+
+# Find the line net.ipv6.conf.default.forwarding=1 and uncomment it (or add it) in the file underneath:
+vi /etc/sysctl.conf
+sudo sysctl -p /etc/sysctl.conf
+
 service docker restart
 ```
 ​
@@ -35,9 +42,16 @@ In the machine that's running postgres (could be the same), run the following:
 ```bash
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 
-# replace the default '' password with what you have in config.env
-sudo -u postgres psql -c "CREATE USER fossa WITH PASSWORD '';"
+# replace the default 'fossa123' password with what you have in config.env
+sudo -u postgres psql -c "CREATE USER fossa WITH PASSWORD 'fossa123';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE fossa TO fossa;"
+
+# In the file below, find the IPv4 host configuration and make sure it looks like this:
+# host    all             all             0.0.0.0/0            md5
+sudo -u postgres vi /etc/postgresql/9.3/main/pg_hba.conf
+
+# In this file, find listen_addresses and set it to '0.0.0.0'
+sudo -u postgres vi /etc/postgresql/9.3/main/postgresql.conf
 
 sudo service postgresql restart
 ```
@@ -78,29 +92,4 @@ fossa start 4
 # Note: '4' refers to the number of analysis agents to launch with FOSSA.  
 # The more agents you run, the faster & greater your analysis load.
 # Reccomended max agents = GB Avail. Mem/2, rounded down (i.e. 32GB RAM/2 = 16 agents)
-```
-
-
-## Troubleshooting
-
-If you are having trouble connecting to postgres, try this:
-
-```bash
-sudo ufw disable
-
-sudo sysctl -p /etc/sysctl.conf
-
-# In the file below, find the IPv4 host configuration and make sure it looks like this:
-# host    all             all             0.0.0.0/0            md5
-sudo -u postgres vi /etc/postgresql/9.3/main/pg_hba.conf
-
-# In this file, find listen_addresses and set it to '0.0.0.0'
-sudo -u postgres vi /etc/postgresql/9.3/main/postgresql.conf
-```
-
-If you're having trouble connecting to Fossa, try this:
-
-```bash
-# Find the line net.ipv6.conf.default.forwarding=1 and uncomment it in the file underneath:
-vi /etc/sysctl.conf
 ```
