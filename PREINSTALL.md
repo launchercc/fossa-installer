@@ -88,9 +88,6 @@ If you are having trouble connecting to postgres, try this:
 ```bash
 sudo ufw disable
 
-# Find the line net.ipv6.conf.default.forwarding=1 and uncomment it in the file underneath:
-vi /etc/sysctl.conf
-
 sudo sysctl -p /etc/sysctl.conf
 
 # In the file below, find the IPv4 host configuration and make sure it looks like this:
@@ -99,4 +96,11 @@ sudo -u postgres vi /etc/postgresql/9.3/main/pg_hba.conf
 
 # In this file, find listen_addresses and set it to '0.0.0.0'
 sudo -u postgres vi /etc/postgresql/9.3/main/postgresql.conf
+```
+
+If you're having trouble connecting to Fossa, try this:
+
+```bash
+# Find the line net.ipv6.conf.default.forwarding=1 and uncomment it in the file underneath:
+vi /etc/sysctl.conf
 ```
