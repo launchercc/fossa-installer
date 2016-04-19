@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-. config.env
+. $( dirname $( readlink -f $0 ) )/config.env
 
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
 
