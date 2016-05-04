@@ -71,6 +71,12 @@ If you'd like FOSSA to integrate with Bitbucket Server/Stash, make sure you prep
 
 Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/bitbucket-server-(stash)` will have futher instructions on setup.
 
+#### JIRA Issue Tracker:
+
+To run the Atlassian JIRA setup, make sure you create a `fossabot` account with global access to create/edit tickets as well as an admin account to install webhooks. 
+
+Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/jira-issue-tracker` will have futher instructions on setup.
+
 #### Github: 
 
 TBA
@@ -81,7 +87,7 @@ As part of the installer, you will be prompted for a `username, password and ema
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.4.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.5.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
 
 # Configure FOSSA first-time
 vi ~/fossa/config.env
