@@ -17,7 +17,7 @@ apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E8
 echo deb https://apt.dockerproject.org/repo ubuntu-trusty main >> /etc/apt/sources.list.d/docker.list
 apt-get update
 apt-get purge lxc-docker
-apt-get install -y docker-engine postgresql-9.3 curl tar
+apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 curl tar
 
 # Replace "ubuntu" with your username, if it's different
 usermod -aG docker ubuntu
@@ -45,6 +45,9 @@ sudo -u postgres psql -c "CREATE DATABASE fossa"
 # replace the default 'fossa123' password with what you have in config.env
 sudo -u postgres psql -c "CREATE USER fossa WITH PASSWORD 'fossa123';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE fossa TO fossa;"
+
+# Install trigram extension
+sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
 
 # In the file below, find the IPv4 host configuration and make sure it looks like this:
 # host    all             all             0.0.0.0/0            md5
