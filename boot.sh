@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-. $( dirname $( readlink -f $0 ) )/config.env
-
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
+
+. $TOP_DIR/config.env
+. $TOP_DIR/configure.sh
 
 function allinstances {
   docker ps --filter='ancestor=quay.io/fossa/fossa' -aq
