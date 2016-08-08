@@ -4,11 +4,11 @@
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
 
 function allinstances {
-  docker ps --filter='ancestor=fossa/fossa' -aq
+  docker ps --filter='ancestor=quay.io/fossa/fossa' -aq
 }
 
 function runninginstances {
-  docker ps --filter='ancestor=fossa/fossa' -q
+  docker ps --filter='ancestor=quay.io/fossa/fossa' -q
 }
 
 function isrunning {
@@ -23,11 +23,13 @@ function init {
     sudo mkdir -p /var/data/fossa
   fi;
 
-  # Login to fetch latest docker image
-  docker login
+  if [ -f ~/.docker/config.json ]; then
+    # Login to fetch latest docker image
+    docker login quay.io
+  fi;
 
   # Fetch latest image
-  docker pull fossa/fossa:latest
+  docker pull quay.io/fossa/fossa:release
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -41,7 +43,7 @@ function upgrade {
   echo "Upgrading Fossa";
 
   # Fetch latest image
-  docker pull fossa/fossa:latest
+  docker pull quay.io/fossa/fossa:release
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -56,16 +58,16 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run migrate
+  docker run --env-file ${TOP_DIR}/config.env quay.io/fossa/fossa:release npm run migrate
 
   # run core server
-  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data fossa/fossa:latest npm run start
+  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data fossa/fossa:latest npm run start:agent
+    docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
 }
