@@ -8,7 +8,7 @@ View `PREINSTALL.md` on a full guide on how to set up the box.
     - Ubuntu 14.04 LTS
     - Static IP address (accessible to users in your organization)
     - >16 GB RAM
-    - >30 GB HDD
+    - >80 GB HDD
     - Docker 1.3+ (config'd to use `devicemapper` over AUFS), Bash 3.2+, curl & tar 
     - Port 80 (or whatever configured) exposed in firewall
 
