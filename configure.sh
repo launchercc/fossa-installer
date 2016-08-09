@@ -35,8 +35,8 @@ function configure_server {
 }
 
 function configure_database {
-  read -p "Database hostname [localhost]: " db__hostname
-  db__hostname=${db__hostname:-localhost}
+  read -p "Database hostname [localhost]: " db__host
+  db__host=${db__host:-localhost}
   read -p "Database port [5432]: " db__port
   db__port=${db__port:-5432}
   read -p "Database name [fossa]: " db__database

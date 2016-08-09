@@ -5,11 +5,11 @@ TOP_DIR="$(dirname "$(readlink -f "$0")")"
 . $TOP_DIR/configure.sh
 
 function allinstances {
-  docker ps --filter='ancestor=quay.io/fossa/fossa' -aq
+  docker ps --filter='ancestor=quay.io/fossa/fossa:release' -aq
 }
 
 function runninginstances {
-  docker ps --filter='ancestor=quay.io/fossa/fossa' -q
+  docker ps --filter='ancestor=quay.io/fossa/fossa:release' -q
 }
 
 function isrunning {
@@ -57,7 +57,7 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env quay.io/fossa/fossa:release npm run migrate
+  docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run migrate
 
   # run core server
   docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start
