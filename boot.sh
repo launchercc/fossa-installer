@@ -23,11 +23,9 @@ function init {
   if [ ! -d /var/data/fossa ]; then
     sudo mkdir -p /var/data/fossa
   fi;
-
-  if [ -f ~/.docker/config.json ]; then
-    # Login to fetch latest docker image
-    docker login quay.io
-  fi;
+  
+  # Login to fetch latest docker image
+  docker login quay.io
 
   # Fetch latest image
   docker pull quay.io/fossa/fossa:release
