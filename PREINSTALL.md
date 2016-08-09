@@ -25,6 +25,9 @@ usermod -aG docker ubuntu
 # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
 echo "DOCKER_OPTS=\"--storage-driver=devicemapper\"" >> /etc/default/docker
 
+# Update device mapper size
+docker daemon --storage-opt dm.basesize=20G
+
 # Configure forwarding
 sudo ufw disable
 
