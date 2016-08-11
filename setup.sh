@@ -26,7 +26,7 @@ function setup {
 }
 
 function save_configuration {
-  set | egrep '^(app|db|github|jira|bitbucket)__.*=' > $TOP_DIR/config.env
+  set | egrep '^((app|db|github|jira|bitbucket)__.*|secret)=' > $TOP_DIR/config.env
 }
 
 function setup_system {
@@ -40,7 +40,7 @@ function setup_system {
   grep -Fq "deb https://apt.dockerproject.org/repo ubuntu-trusty main" < /etc/apt/sources.list.d/docker.list || ( touch /etc/apt/sources.list.d/docker.list ; echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" >> /etc/apt/sources.list.d/docker.list )
   apt-get update
   apt-get purge lxc-docker
-  apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 curl tar
+  apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 curl tar default-jdk
 
   # Replace "ubuntu" with your username, if it's different
   usermod -aG docker ubuntu

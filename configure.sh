@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function configure_environment {
-  echo "Let's get started by configuring the Fossa environment!"
+  echo "Configuring Fossa!"
   echo
 
   echo "Step 1: Server"
@@ -24,6 +24,15 @@ function configure_environment {
   configure_bitbucket
   configure_jira
   configure_github
+
+  echo
+  echo "Step 5: Generating Secret Key"
+  echo
+  configure_secret_key
+
+  echo
+  echo "Finished configuring Fossa"
+  echo
 }
 
 # Sections
@@ -123,6 +132,10 @@ function configure_github {
       echo
     ;;
   esac
+}
+
+function configure_secret_key {
+  secret=$( cut -c 1-64 <( xxd -ps <<< $( dd if=/dev/urandom count=32 ibs=1 2> /dev/null ) | tr -d '\n' ) )
 }
 
 
