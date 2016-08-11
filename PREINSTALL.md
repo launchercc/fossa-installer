@@ -4,7 +4,22 @@ This guide will help you set up your machine's environment to install FOSSA on `
 
 Make sure you run this guide as a superuser via `sudo -s`.
 
-## 1. Set up the environment
+There are 2 ways in set your environment up for Fossa:
+
+1. Using the automated setup script: `setup.sh` **(preferred)**
+2. Manually
+
+## Automated Setup
+
+Execute the following command and follow the prompt on the screen:
+
+```bash
+sudo <fossa installer base>/setup.sh
+```
+
+## Manual Setup
+
+### 1. Set up the environment
 
 ```bash
 # Update the registry
@@ -23,10 +38,7 @@ apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 curl tar
 usermod -aG docker ubuntu
 
 # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
-echo "DOCKER_OPTS=\"--storage-driver=devicemapper\"" >> /etc/default/docker
-
-# Update device mapper size
-docker daemon --storage-opt dm.basesize=20G
+echo "DOCKER_OPTS=\"--storage-driver=devicemapper\" --storage-opt dm.basesize=20G" >> /etc/default/docker
 
 # Configure forwarding
 sudo ufw disable
@@ -38,7 +50,7 @@ sudo sysctl -p /etc/sysctl.conf
 service docker restart
 ```
 ​
-## 2. Set up the Postgres database
+### 2. Set up the Postgres database
 
 In the machine that's running postgres (could be the same), run the following:
 
@@ -64,7 +76,7 @@ sudo service postgresql restart
 
 If you have a separate postgres instance, make sure you add those connection details to `config.env`.
 
-## 3. (Optional) Prepare Integrations
+### 3. (Optional) Prepare Integrations
 
 #### Bitbucket/Stash:
 
@@ -87,13 +99,13 @@ Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/jira-issue-tracker` will 
 
 TBA
 
-## 4. Run the FOSSA installer
+## Run the FOSSA installer
 
 As part of the installer, you will be prompted for a `username, password and email`.  Contact `support@fossa.io` if you haven't already been given those credentials.
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.8.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.9.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
 
 # Configure FOSSA first-time
 vi ~/fossa/config.env
