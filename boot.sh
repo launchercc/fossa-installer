@@ -62,6 +62,9 @@ function start {
   # run core server
   docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start
 
+  # run watchdogs
+  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start:watchdogs
+
   current=$( runninginstances )
 
   # run agents
