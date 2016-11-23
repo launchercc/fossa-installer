@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
+DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
 
 function allinstances {
-  docker ps --filter='ancestor=quay.io/fossa/fossa:release' -aq
+  docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
 }
 
 function runninginstances {
-  docker ps --filter='ancestor=quay.io/fossa/fossa:release' -q
+  docker ps --filter="ancestor=$DOCKER_IMAGE" -q
 }
 
 function isrunning {
@@ -28,7 +29,7 @@ function init {
   docker login quay.io
 
   # Fetch latest image
-  docker pull quay.io/fossa/fossa:release
+  docker pull $DOCKER_IMAGE
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -42,7 +43,7 @@ function upgrade {
   echo "Upgrading Fossa";
 
   # Fetch latest image
-  docker pull quay.io/fossa/fossa:release
+  docker pull $DOCKER_IMAGE
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -57,20 +58,20 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run migrate
+  docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate
 
   # run core server
-  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start
+  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start
 
   # run watchdogs
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start:watchdogs:build
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start:watchdogs:revision
+  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:build
+  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:revision
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data quay.io/fossa/fossa:release npm run start:agent
+    docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
 }
