@@ -40,7 +40,7 @@ function setup_system {
   grep -Fq "deb https://apt.dockerproject.org/repo ubuntu-trusty main" < /etc/apt/sources.list.d/docker.list || ( touch /etc/apt/sources.list.d/docker.list ; echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" >> /etc/apt/sources.list.d/docker.list )
   apt-get update
   apt-get purge lxc-docker
-  apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 curl tar default-jdk
+  apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 postgresql-server-dev-9.3 curl tar default-jdk
 
   # Replace "ubuntu" with your username, if it's different
   usermod -aG docker ubuntu
@@ -59,6 +59,8 @@ function setup_system {
 }
 
 function setup_database {
+  sudo cp tools/pg/extensions/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+
   # In the file below, find the IPv4 host configuration and make sure it looks like this:
   # host    all             all             0.0.0.0/0            md5
   sudo -u postgres mv /etc/postgresql/9.3/main/pg_hba.conf /etc/postgresql/9.3/main/pg_hba.conf.bk
@@ -79,6 +81,9 @@ function setup_database {
 
   # Install trigram extension
   sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+
+  # Install pg_fossa extension
+  sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_fossa"
 
   service postgresql restart
 
