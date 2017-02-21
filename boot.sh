@@ -61,7 +61,7 @@ function start {
   docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate
 
   # Migrate rubygems database
-  docker run --env-file ${TOP_DIR}/config.env fossa/fossa:latest npm run migrate:rubygems
+  docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:rubygems
 
   # run core server
   docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start
