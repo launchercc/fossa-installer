@@ -18,6 +18,7 @@ function setup {
   configure_environment
   save_configuration
   setup_system
+  download_extensions
   setup_database
 
   echo
@@ -26,7 +27,7 @@ function setup {
 }
 
 function save_configuration {
-  set | egrep '^((app|db|github|jira|bitbucket)__.*|secret)=' > $TOP_DIR/config.env
+  set | egrep '^((app|db|db_rubygems|github|jira|bitbucket)__.*|secret)=' > $TOP_DIR/config.env
 }
 
 function setup_system {
@@ -44,6 +45,7 @@ function setup_system {
 
   # Replace "ubuntu" with your username, if it's different
   usermod -aG docker ubuntu
+  usermod -aG docker admin
 
   # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
   grep -Fq "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=20G\"" < /etc/default/docker || ( touch /etc/default/docker ; echo "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=20G\"" >> /etc/default/docker )
@@ -56,6 +58,10 @@ function setup_system {
   sysctl -p /etc/sysctl.conf
 
   restart docker
+}
+
+function download_extensions {
+   curl -L https://github.com/fossas/pg_fossa/archive/v1.1.tar.gz | tar -zxv -C tools/pg/extensions/ --strip-components=1
 }
 
 function setup_database {
