@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
+COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -31,6 +32,9 @@ function init {
   # Fetch latest image
   docker pull $DOCKER_IMAGE
 
+  # Fetch latest cocoapods api image
+  docker pull $COCOAPODS_DOCKER_IMAGE
+
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
@@ -44,6 +48,9 @@ function upgrade {
 
   # Fetch latest image
   docker pull $DOCKER_IMAGE
+
+  # Fetch latest cocoapods api image
+  docker pull $COCOAPODS_DOCKER_IMAGE
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -70,6 +77,12 @@ function start {
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:build
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:revision
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:updateHook
+
+  # Migrate Cocoapods API
+  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+  
+  # Run Cocoapods API
+  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
 
   current=$( runninginstances )
 

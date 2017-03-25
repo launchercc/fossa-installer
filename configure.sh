@@ -27,7 +27,12 @@ function configure_environment {
   configure_github
 
   echo
-  echo "Step 5: Generating Secret Key"
+  echo "Step 5: Cocoapods API"
+  echo
+  configure_cocoapods_api
+
+  echo
+  echo "Step 6: Generating Secret Key"
   echo
   configure_secret_key
 
@@ -152,6 +157,30 @@ function configure_github {
     ;;
     * )
       echo "Skipping Github configuration"
+      echo
+    ;;
+  esac
+}
+
+function configure_cocoapods_api {
+  read -p "Configure cocoapods_api (Y|N)? [N]: " cocoapods_api__enabled
+  case $cocoapods_api__enabled in
+    [Yy]* )
+      echo "Configuring Cocoapods!"
+      echo
+      cocoapods_api__enabled=true
+      read -p "api protocol [http]: " cocoapods_api__protocol
+      cocoapods_api__protocol=${cocoapods_api__protocol:-http}
+      read -p "api hostname [fossa-cocoapods-api]: " cocoapods_api__hostname
+      cocoapods_api__hostname=${cocoapods_api__hostname:-fossa-cocoapods-api}
+      read -p "api port [9292]: " cocoapods_api__port
+      cocoapods_api__port=${cocoapods_api__protocol:-9292}
+      
+      echo "Finished configuring Cocoapods API!"
+      echo
+    ;;
+    * )
+      echo "Skipping Cocoapods API configuration"
       echo
     ;;
   esac
