@@ -107,14 +107,8 @@ Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/jira-issue-tracker` will 
 TBA
 
 #### Cocoapods API:
-Add a host in the `/etc/hosts` file to map to the ip of your Cocoapods API container:
 
-`sudo vi /etc/hosts`
-
-Add this line:
-`199.xxx.xxx.xxx fossa-cocoapods-api`
-
-Make sure to replace `199.xxx.xxx.xxx` with the fossa-cocoapods-api container IP, and `fossa-cocoapods-api` with what you have as your `cocoapods_api__hostname` config in `config.env`
+Make sure that you have the fossa-cocoapods-api container IP mapped to what is listed as your `cocoapods_api__hostname` config in `config.env`.
 
 ## Run the FOSSA installer
 
