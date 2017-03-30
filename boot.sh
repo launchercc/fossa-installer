@@ -79,10 +79,10 @@ function start {
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:updateHook
 
   # Migrate Cocoapods API
-  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+  docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /root/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
   
   # Run Cocoapods API
-  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /root/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
 
   current=$( runninginstances )
 

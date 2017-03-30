@@ -108,7 +108,7 @@ TBA
 
 #### Cocoapods API:
 
-Make sure that you have the fossa-cocoapods-api container IP mapped to what is listed as your `cocoapods_api__hostname` config in `config.env`.
+Make sure that you have the fossa-cocoapods-api container IP mapped to what is listed as your `cocoapods_api__hostname` config in `config.env`. The Cocoapods-api migration will create a public/private key pair if one does not exist on your host machine at `/root/.ssh/id_rsa'.
 
 ## Run the FOSSA installer
 
