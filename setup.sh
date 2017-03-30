@@ -27,7 +27,7 @@ function setup {
 }
 
 function save_configuration {
-  set | egrep '^((app|db|db_rubygems|github|jira|bitbucket)__.*|secret)=' > $TOP_DIR/config.env
+  set | egrep '^((app|db|db_rubygems|github|jira|bitbucket|cocoapods_api)__.*|secret)=' > $TOP_DIR/config.env
 }
 
 function setup_system {

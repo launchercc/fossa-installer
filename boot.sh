@@ -8,10 +8,12 @@ COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-a
 
 function allinstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
+  docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
 }
 
 function runninginstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -q
+  docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -q
 }
 
 function isrunning {
