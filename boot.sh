@@ -67,10 +67,10 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env -e public_tar=/tmp/ruby -v /tmp/ruby:/tmp/ruby $DOCKER_IMAGE npm run migrate
+  docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate
 
   # Migrate rubygems database
-  docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:rubygems
+  docker run --env-file ${TOP_DIR}/config.env -e public_tar=/tmp/ruby -v /tmp/ruby:/tmp/ruby $DOCKER_IMAGE npm run migrate:rubygems -- -o /tmp/ruby/rubygems_data_dump.tar
 
   # Migrate Cocoapods API
   docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
