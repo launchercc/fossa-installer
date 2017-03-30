@@ -86,7 +86,7 @@ function setup_database {
   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"$db__database\" TO $db__username;"
 
   sudo -u postgres psql -c "CREATE DATABASE \"$db_rubygems__database\""
-  sudo -u postgres psql -c "CREATE USER $db_rubygems__username WITH PASSWORD '$db_rubygems__password';"
+  sudo -u postgres psql -c "CREATE USER $db_rubygems__username WITH PASSWORD '$db_rubygems__password' WITH CREATEUSER;"
   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"$db_rubygems__database\" TO $db_rubygems__username;"
 
   # Install trigram extension
