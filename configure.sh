@@ -174,7 +174,7 @@ function configure_cocoapods_api {
       read -p "api hostname [fossa-cocoapods-api]: " cocoapods_api__hostname
       cocoapods_api__hostname=${cocoapods_api__hostname:-fossa-cocoapods-api}
       read -p "api port [9292]: " cocoapods_api__port
-      cocoapods_api__port=${cocoapods_api__protocol:-9292}
+      cocoapods_api__port=${cocoapods_api__port:-9292}
       
       echo "Finished configuring Cocoapods API!"
       echo

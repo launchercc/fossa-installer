@@ -82,7 +82,7 @@ function setup_database {
   # PGPASSFILE=/tmp/.fossapgpass
   # echo "$db__hostname:$db__port:$db__database:$db__username:$db__password" > $PGPASSFILE
   sudo -u postgres psql -c "CREATE DATABASE \"$db__database\""
-  sudo -u postgres psql -c "CREATE USER $db__username WITH PASSWORD '$db__password';"
+  sudo -u postgres psql -c "CREATE USER $db__username WITH PASSWORD '$db__password' WITH CREATEUSER;"
   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"$db__database\" TO $db__username;"
 
   sudo -u postgres psql -c "CREATE DATABASE \"$db_rubygems__database\""
