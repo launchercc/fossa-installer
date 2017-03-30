@@ -2,6 +2,7 @@
 TOP_DIR="$(dirname "$(readlink -f "$0")")"
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
+PRE_040=${PRE_040-}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -67,7 +68,11 @@ function start {
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
-  docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate
+  if [[ ${PRE_040} ]]; then
+    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:pre-0.4.0
+  else
+    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate
+  fi;
 
   # Migrate rubygems database
   docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod -- --output /opt/ruby/rubygems_data_dump.tar
