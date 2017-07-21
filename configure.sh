@@ -22,9 +22,10 @@ function configure_environment {
   echo
   echo "Step 4: Integrations"
   echo
-  configure_bitbucket
-  configure_jira
   configure_github
+  configure_bitbucket
+  configure_gitlab
+  configure_jira
 
   echo
   echo "Step 5: Cocoapods API"
@@ -62,10 +63,11 @@ function configure_database {
 }
 
 function configure_rubygems_database {
-  local enabled
-  read -p "Configure rubygems (Y|N)? [N]: " enabled
-  case $enabled in
+  local db_rubygems__enabled
+  read -p "Configure rubygems (Y|N)? [N]: " db_rubygems__enabled
+  case $db_rubygems__enabled in
     [Yy]* )
+      db_rubygems__enabled=true
       read -p "Database hostname [localhost]: " db_rubygems__host
       db_rubygems__host=${db_rubygems__host:-localhost}
       read -p "Database port [5432]: " db_rubygems__port
@@ -83,22 +85,35 @@ function configure_rubygems_database {
   esac
 }
 
-function configure_email {
-  read -p "Email hostname [localhost]: " email__transport__options__host
-  email__transport__options__host=${email__transport__options__host:-localhost}
-  read -p "Email port [5432]: " email__transport__options__port
-  email__transport__options__port=${email__transport__options__port:-5432}
-  read -p "Email username: " email__transport__options__auth__user
-  qpasswordretry "Email password: " "email__transport__options__auth__pass" true
+function configure_github {
+  read -p "Configure github (Y|N)? [N]: " github__enabled
+  case $github__enabled in
+    [Yy]* )
+      echo "Configuring Github!"
+      echo
+      github__enabled=true
+      read -p "Github base URL [https://github.mycompany.com]: " github__base_url
+      github__base_url=${github__base_url:-https://github.mycompany.com}
+      qnotempty "Github client ID: " github__credentials__oauth2__client_id "Github client ID cannot be empty. Try again!"
+      qpassword "Github client secret: " github__credentials__oauth2__client_secret false
+      echo "Finished configuring Github!"
+      echo
+    ;;
+    * )
+      echo "Skipping Github configuration"
+      echo
+    ;;
+  esac
 }
 
 function configure_bitbucket {
-  local enabled
-  read -p "Configure Bitbucket (Y|N)? [N]: " enabled
-  case $enabled in
+  local bitbucket__enabled
+  read -p "Configure Bitbucket (Y|N)? [N]: " bitbucket__enabled
+  case $bitbucket__enabled in
     [Yy]* )
       echo "Configuring Bitbucket!"
       echo
+      bitbucket__enabled=true
       read -p "Bitbucket base URL [http://localhost:7990/]: " bitbucket__base_url
       bitbucket__base_url=${bitbucket__base_url:-http://localhost:7990/}
       read -p "Bitbucket oauth2 client id [fossa]: " bitbucket__oauth2_client_id
@@ -111,6 +126,31 @@ function configure_bitbucket {
     ;;
     * )
       echo "Skipping Bitbucket configuration"
+      echo
+    ;;
+  esac
+}
+
+function configure_gitlab {
+  local gitlab__enabled
+  read -p "Configure Gitlab (Y|N)? [N]: " gitlab__enabled
+  case $gitlab__enabled in
+    [Yy]* )
+      echo "Configuring Gitlab!"
+      echo
+      gitlab__enabled=true
+      read -p "Gitlab base URL [http://localhost:7990/]: " gitlab__base_url
+      gitlab__base_url=${gitlab__base_url:-http://localhost:7990/}
+      read -p "Gitlab oauth2 client id [fossa]: " gitlab__oauth2_client_id
+      gitlab__oauth2_client_id=${gitlab__oauth2_client_id:-fossa}
+      qnotempty "Gitlab username: " gitlab__credentials__basic__username "Gitlab username cannot be empty. Try again!"
+      qpasswordretry "Gitlab password: " "gitlab__credentials__basic__password" false
+
+      echo "Finished configuring Gitlab!"
+      echo
+    ;;
+    * )
+      echo "Skipping Gitlab configuration"
       echo
     ;;
   esac
@@ -141,27 +181,6 @@ function configure_jira {
   esac
 }
 
-function configure_github {
-  read -p "Configure github (Y|N)? [N]: " github__enabled
-  case $github__enabled in
-    [Yy]* )
-      echo "Configuring Github!"
-      echo
-      github__enabled=true
-      read -p "Github base URL [https://github.mycompany.com]: " github__base_url
-      github__base_url=${github__base_url:-https://github.mycompany.com}
-      qnotempty "Github client ID: " github__credentials__oauth2__client_id "Github client ID cannot be empty. Try again!"
-      qpassword "Github client secret: " github__credentials__oauth2__client_secret false
-      echo "Finished configuring Github!"
-      echo
-    ;;
-    * )
-      echo "Skipping Github configuration"
-      echo
-    ;;
-  esac
-}
-
 function configure_cocoapods_api {
   read -p "Configure cocoapods_api (Y|N)? [N]: " cocoapods_api__enabled
   case $cocoapods_api__enabled in
@@ -184,6 +203,15 @@ function configure_cocoapods_api {
       echo
     ;;
   esac
+}
+
+function configure_email {
+  read -p "Email hostname [localhost]: " email__transport__options__host
+  email__transport__options__host=${email__transport__options__host:-localhost}
+  read -p "Email port [5432]: " email__transport__options__port
+  email__transport__options__port=${email__transport__options__port:-5432}
+  read -p "Email username: " email__transport__options__auth__user
+  qpasswordretry "Email password: " "email__transport__options__auth__pass" true
 }
 
 function configure_secret_key {

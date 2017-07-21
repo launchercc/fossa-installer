@@ -38,7 +38,7 @@ apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 postgresq
 usermod -aG docker ubuntu
 
 # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
-echo "DOCKER_OPTS=\"--storage-driver=devicemapper\" --storage-opt dm.basesize=20G" >> /etc/default/docker
+echo "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt=dm.basesize=20G\"" >> /etc/default/docker
 
 # Configure forwarding
 sudo ufw disable
@@ -55,7 +55,7 @@ service docker restart
 In the machine that's running postgres (could be the same), run the following:
 
 ```bash
-mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.1.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.3.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 sudo -u postgres psql -c "CREATE DATABASE rubygems"

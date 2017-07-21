@@ -61,7 +61,7 @@ function setup_system {
 }
 
 function download_extensions {
-   curl -L https://github.com/fossas/pg_fossa/archive/v1.1.tar.gz | tar -zxv -C tools/pg/extensions/ --strip-components=1
+  curl -L https://github.com/fossas/pg_fossa/archive/v1.3.tar.gz | tar -zxv -C tools/pg/extensions/ --strip-components=1
 }
 
 function setup_database {
