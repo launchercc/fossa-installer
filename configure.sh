@@ -23,15 +23,12 @@ function configure_environment {
   echo "Step 4: Integrations"
   echo
   configure_github
-  configure_bitbucket
+  configure_bitbucket_server
+  configure_bitbucket_cloud
   configure_gitlab
   configure_jira
-
-  echo
-  echo "Step 5: Cocoapods API"
-  echo
-  configure_cocoapods_api
-
+  configure_cocoapods
+  
   echo
   echo "Step 6: Generating Secret Key"
   echo
@@ -51,35 +48,35 @@ function configure_server {
 }
 
 function configure_database {
-  read -p "Database hostname [localhost]: " db__host
+  read -p "Fossa Database hostname [localhost]: " db__host
   db__host=${db__host:-localhost}
-  read -p "Database port [5432]: " db__port
+  read -p "Fossa Database port [5432]: " db__port
   db__port=${db__port:-5432}
-  read -p "Database name [fossa]: " db__database
+  read -p "Fossa Database name [fossa]: " db__database
   db__database=${db__database:-fossa}
-  read -p "Database username [fossa]: " db__username
+  read -p "Fossa Database username [fossa]: " db__username
   db__username=${db__username:-fossa}
-  qpasswordretry "Database password: " "db__password" false
+  qpasswordretry "Fossa Database password: " "db__password" false
 }
 
 function configure_rubygems_database {
-  local db_rubygems__enabled
   read -p "Configure rubygems (Y|N)? [N]: " db_rubygems__enabled
   case $db_rubygems__enabled in
     [Yy]* )
       db_rubygems__enabled=true
-      read -p "Database hostname [localhost]: " db_rubygems__host
+      read -p "Rubygems Database hostname [localhost]: " db_rubygems__host
       db_rubygems__host=${db_rubygems__host:-localhost}
-      read -p "Database port [5432]: " db_rubygems__port
+      read -p "Rubygems Database port [5432]: " db_rubygems__port
       db_rubygems__port=${db_rubygems__port:-5432}
-      read -p "Database name [rubygems]: " db_rubygems__database
+      read -p "Rubygems Database name [rubygems]: " db_rubygems__database
       db_rubygems__database=${db_rubygems__database:-rubygems}
-      read -p "Database username [fossa]: " db_rubygems__username
+      read -p "Rubygems Database username [fossa]: " db_rubygems__username
       db_rubygems__username=${db_rubygems__username:-fossa}
-      qpasswordretry "Database password: " "db_rubygems__password" false
+      qpasswordretry "Rubygems Database password: " "db_rubygems__password" false
     ;;
     * )
       echo "Skipping Rubygems configuration"
+      db_rubygems__enabled=""
       echo
     ;;
   esac
@@ -101,14 +98,14 @@ function configure_github {
     ;;
     * )
       echo "Skipping Github configuration"
+      github__enabled=""
       echo
     ;;
   esac
 }
 
-function configure_bitbucket {
-  local bitbucket__enabled
-  read -p "Configure Bitbucket (Y|N)? [N]: " bitbucket__enabled
+function configure_bitbucket_server{
+  read -p "Configure Bitbucket Server (Y|N)? [N]: " bitbucket__enabled
   case $bitbucket__enabled in
     [Yy]* )
       echo "Configuring Bitbucket!"
@@ -126,13 +123,36 @@ function configure_bitbucket {
     ;;
     * )
       echo "Skipping Bitbucket configuration"
+      bitbucket__enabled=""
+      echo
+    ;;
+  esac
+}
+
+function configure_bitbucket_cloud{
+  read -p "Configure Bitbucket Cloud (Y|N)? [N]: " bitbucket_cloud__enabled
+  case $bitbucket_cloud__enabled in
+    [Yy]* )
+      echo "Configuring Bitbucket Cloud!"
+      echo
+      bitbucket_cloud__enabled=true
+      read -p "Bitbucket Cloud base URL [http://localhost:7990/]: " bitbucket_cloud__base_url
+      bitbucket_cloud__base_url=${bitbucket_cloud__base_url:-http://localhost:7990/}
+      qnotempty "Bitbucket Cloud client ID: " bitbucket_cloud__credentials__oauth2__client_id "Bitbucket Cloud client ID cannot be empty. Try again!"
+      qpassword "Bitbucket Cloud client secret: " bitbucket_cloud__credentials__oauth2__client_secret false
+
+      echo "Finished configuring Bitbucket Cloud!"
+      echo
+    ;;
+    * )
+      echo "Skipping Bitbucket Cloud configuration"
+      bitbucket_cloud__enabled=""
       echo
     ;;
   esac
 }
 
 function configure_gitlab {
-  local gitlab__enabled
   read -p "Configure Gitlab (Y|N)? [N]: " gitlab__enabled
   case $gitlab__enabled in
     [Yy]* )
@@ -141,16 +161,15 @@ function configure_gitlab {
       gitlab__enabled=true
       read -p "Gitlab base URL [http://localhost:7990/]: " gitlab__base_url
       gitlab__base_url=${gitlab__base_url:-http://localhost:7990/}
-      read -p "Gitlab oauth2 client id [fossa]: " gitlab__oauth2_client_id
-      gitlab__oauth2_client_id=${gitlab__oauth2_client_id:-fossa}
-      qnotempty "Gitlab username: " gitlab__credentials__basic__username "Gitlab username cannot be empty. Try again!"
-      qpasswordretry "Gitlab password: " "gitlab__credentials__basic__password" false
+      qnotempty "Gitlab client ID: " gitlab__credentials__oauth2__client_id "Gitlab client ID cannot be empty. Try again!"
+      qpassword "Gitlab client secret: " gitlab__credentials__oauth2__client_secret false
 
       echo "Finished configuring Gitlab!"
       echo
     ;;
     * )
       echo "Skipping Gitlab configuration"
+      gitlab__enabled=""
       echo
     ;;
   esac
@@ -181,8 +200,8 @@ function configure_jira {
   esac
 }
 
-function configure_cocoapods_api {
-  read -p "Configure cocoapods_api (Y|N)? [N]: " cocoapods_api__enabled
+function configure_cocoapods {
+  read -p "Configure cocoapods api for iOS support (Y|N)? [N]: " cocoapods_api__enabled
   case $cocoapods_api__enabled in
     [Yy]* )
       echo "Configuring Cocoapods!"
@@ -200,6 +219,7 @@ function configure_cocoapods_api {
     ;;
     * )
       echo "Skipping Cocoapods API configuration"
+      cocoapods_api__enabled=""
       echo
     ;;
   esac

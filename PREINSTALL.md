@@ -55,7 +55,7 @@ service docker restart
 In the machine that's running postgres (could be the same), run the following:
 
 ```bash
-mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.3.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.4.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 sudo -u postgres psql -c "CREATE DATABASE rubygems"
@@ -68,8 +68,12 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE rubygems TO fossa;"
 # Install trigram extension
 sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
 
+# Install fuzzystrmatch extension
+sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS fuzzystrmatch"
+
 # Install pg_fossa extension
 sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_fossa"
+
 
 # In the file below, find the IPv4 host configuration and make sure it looks like this:
 # host    all             all             0.0.0.0/0            md5
@@ -102,11 +106,7 @@ To run the Atlassian JIRA setup, make sure you create a `fossabot` account with 
 
 Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/jira-issue-tracker` will have futher instructions on setup.
 
-#### Github: 
-
-TBA
-
-#### Cocoapods API:
+#### iOS support (Cocoapods API):
 
 Make sure that you have the fossa-cocoapods-api container IP mapped to what is listed as your `cocoapods_api__hostname` config in `config.env`. The Cocoapods-api migration will create a public/private key pair if one does not exist on your host machine at `/root/.ssh/id_rsa'.
 
@@ -116,7 +116,7 @@ As part of the installer, you will be prompted for a `username, password and ema
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.11.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.13.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
 
 # Configure FOSSA first-time
 vi ~/fossa/config.env
@@ -126,5 +126,5 @@ fossa start 4
 
 # Note: '4' refers to the number of analysis agents to launch with FOSSA.  
 # The more agents you run, the faster & greater your analysis load.
-# Reccomended max agents = GB Avail. Mem/2, rounded down (i.e. 32GB RAM/2 = 16 agents)
+# Recommended max agents = GB Avail. Mem/2, rounded down (i.e. 32GB RAM/2 = 16 agents)
 ```

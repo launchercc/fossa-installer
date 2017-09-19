@@ -27,7 +27,7 @@ function setup {
 }
 
 function save_configuration {
-  set | egrep '^((app|db|db_rubygems|github|jira|bitbucket|cocoapods_api)__.*|secret)=' > $TOP_DIR/config.env
+  set | egrep '^((app|db|db_rubygems|github|jira|bitbucket|bitbucket_cloud|gitlab|email|cocoapods_api)__.*|secret)=' > $TOP_DIR/config.env
 }
 
 function setup_system {
@@ -61,7 +61,7 @@ function setup_system {
 }
 
 function download_extensions {
-  curl -L https://github.com/fossas/pg_fossa/archive/v1.3.tar.gz | tar -zxv -C tools/pg/extensions/ --strip-components=1
+  curl -L https://github.com/fossas/pg_fossa/archive/v1.4.tar.gz | tar -zxv -C tools/pg/extensions/ --strip-components=1
 }
 
 function setup_database {
@@ -91,6 +91,9 @@ function setup_database {
 
   # Install trigram extension
   sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+
+  # Install fuzzystrmatch extension
+  sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS fuzzystrmatch"
 
   # Install pg_fossa extension
   sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_fossa"

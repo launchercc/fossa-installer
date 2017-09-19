@@ -8,7 +8,7 @@ View `PREINSTALL.md` on a full guide on how to set up the box.
     - Ubuntu 14.04 LTS
     - Static IP address (accessible to users in your organization)
     - >16 GB RAM
-    - >80 GB HDD
+    - >100 GB HDD
     - Docker 1.3+ (config'd to use `devicemapper` over AUFS), Bash 3.2+, curl & tar 
     - Port 80 (or whatever configured) exposed in firewall
 
@@ -33,13 +33,15 @@ As part of the installer, you will be prompted for a `username, password and ema
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.11.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && sudo ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && cd ~/fossa
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.13.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && sudo ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && cd ~/fossa
 
 # Setup fossa
 sudo ./setup.sh
 
-# Initialize fossa
+# Add user to docker group
 sudo usermod -aG docker $( id -un )
+
+# Initialize fossa
 fossa init
 
 # Configure FOSSA first-time

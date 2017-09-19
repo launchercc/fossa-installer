@@ -3,18 +3,23 @@ TOP_DIR="$(dirname "$(readlink -f "$0")")"
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
+PRE_050=${PRE_050-}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
 
 function allinstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
-  docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
+  if [ "$cocoapods_api__enabled" = true ]; then
+    docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
+  fi
 }
 
 function runninginstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -q
-  docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -q
+  if [ "$cocoapods_api__enabled" = true ]; then
+    docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -q
+  fi
 }
 
 function isrunning {
@@ -35,9 +40,10 @@ function init {
   # Fetch latest image
   docker pull $DOCKER_IMAGE
 
-  # Fetch latest cocoapods api image
-  docker pull $COCOAPODS_DOCKER_IMAGE
-
+  if [ "$cocoapods_api__enabled" = true ]; then
+    # Fetch latest cocoapods api image
+    docker pull $COCOAPODS_DOCKER_IMAGE
+  fi
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
@@ -52,8 +58,11 @@ function upgrade {
   # Fetch latest image
   docker pull $DOCKER_IMAGE
 
-  # Fetch latest cocoapods api image
-  docker pull $COCOAPODS_DOCKER_IMAGE
+  if [ "$cocoapods_api__enabled" = true ]; then
+    # Fetch latest cocoapods api image
+    docker pull $COCOAPODS_DOCKER_IMAGE
+  fi
+
 
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
@@ -70,26 +79,32 @@ function start {
   # Migrate database
   if [[ ${PRE_040} ]]; then
     docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:pre-0.4.0
+  elif [[ ${PRE_050} ]]; then
+    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:pre-0.5.0
   else
     docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate
   fi;
 
-  # Migrate rubygems database
-  docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod -- --output /opt/ruby/rubygems_data_dump.tar
+  if [ "$db_rubygems__enabled" = true ]; then
+    # Migrate rubygems database
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod -- --output /opt/ruby/rubygems_data_dump.tar
+  fi
 
-  # Migrate Cocoapods API
-  docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
-  
-  # Run Cocoapods API
-  docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
-
+  if [ "$cocoapods_api__enabled" = true ]; then
+    # Migrate Cocoapods API
+    docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    
+    # Run Cocoapods API
+    docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+  fi
   # run core server
   docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start
 
   # run watchdogs
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:build
+  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:task
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:revision
   docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:updateHook
+  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:dependencyLock
 
   current=$( runninginstances )
 
