@@ -104,7 +104,7 @@ function configure_github {
   esac
 }
 
-function configure_bitbucket_server{
+function configure_bitbucket_server {
   read -p "Configure Bitbucket Server (Y|N)? [N]: " bitbucket__enabled
   case $bitbucket__enabled in
     [Yy]* )
@@ -129,7 +129,7 @@ function configure_bitbucket_server{
   esac
 }
 
-function configure_bitbucket_cloud{
+function configure_bitbucket_cloud {
   read -p "Configure Bitbucket Cloud (Y|N)? [N]: " bitbucket_cloud__enabled
   case $bitbucket_cloud__enabled in
     [Yy]* )
@@ -237,7 +237,6 @@ function configure_email {
 function configure_secret_key {
   secret=$( cut -c 1-64 <( xxd -ps <<< $( dd if=/dev/urandom count=32 ibs=1 2> /dev/null ) | tr -d '\n' ) )
 }
-
 
 # Utility functions
 function qnotempty {
