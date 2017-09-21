@@ -34,6 +34,7 @@ function init {
     sudo mkdir -p /var/data/fossa
   fi;
   
+  echo "Please provide docker login credentials."
   # Login to fetch latest docker image
   docker login quay.io
 
@@ -78,16 +79,16 @@ function start {
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:pre-0.4.0
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.4.0
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate:pre-0.5.0
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.5.0
   else
-    docker run --env-file ${TOP_DIR}/config.env $DOCKER_IMAGE npm run migrate
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate
   fi;
 
   if [ "$db_rubygems__enabled" = true ]; then
     # Migrate rubygems database
-    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod -- --output /opt/ruby/rubygems_data_dump.tar
+    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod --output /opt/ruby/rubygems_data_dump.tar
   fi
 
   if [ "$cocoapods_api__enabled" = true ]; then
