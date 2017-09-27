@@ -29,16 +29,17 @@ apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E8
 
 # Download and install docker, postgres
 # NOTE: Do not use Docker 1.9.1 because of: https://github.com/docker/docker/issues/18180
-echo deb https://apt.dockerproject.org/repo ubuntu-trusty main >> /etc/apt/sources.list.d/docker.list
+grep -Fq "deb https://apt.dockerproject.org/repo ubuntu-trusty main" < /etc/apt/sources.list.d/docker.list || ( touch /etc/apt/sources.list.d/docker.list ; echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" >> /etc/apt/sources.list.d/docker.list )
 apt-get update
 apt-get purge lxc-docker
 apt-get install -y docker-engine postgresql-9.3 postgresql-contrib-9.3 postgresql-server-dev-9.3 curl tar default-jdk
 
 # Replace "ubuntu" with your username, if it's different
 usermod -aG docker ubuntu
+usermod -aG docker admin
 
 # Edit docker config to use "devicemapper" over "aufs" due to issues with aufs on Ubuntu
-echo "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt=dm.basesize=20G\"" >> /etc/default/docker
+grep -Fq "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=20G\"" < /etc/default/docker || ( touch /etc/default/docker ; echo "DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=20G\"" >> /etc/default/docker )
 
 # Configure forwarding
 sudo ufw disable
@@ -66,13 +67,13 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE fossa TO fossa;"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE rubygems TO fossa;"
 
 # Install trigram extension
-sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 
 # Install fuzzystrmatch extension
-sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS fuzzystrmatch"
+sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;"
 
 # Install pg_fossa extension
-sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_fossa"
+sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_fossa;"
 
 
 # In the file below, find the IPv4 host configuration and make sure it looks like this:
