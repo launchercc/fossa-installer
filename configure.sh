@@ -209,8 +209,8 @@ function configure_cocoapods {
       cocoapods_api__enabled=true
       read -p "api protocol [http]: " cocoapods_api__protocol
       cocoapods_api__protocol=${cocoapods_api__protocol:-http}
-      read -p "api hostname [fossa-cocoapods-api]: " cocoapods_api__hostname
-      cocoapods_api__hostname=${cocoapods_api__hostname:-fossa-cocoapods-api}
+      read -p "api hostname [localhost]: " cocoapods_api__hostname
+      cocoapods_api__hostname=${cocoapods_api__hostname:-localhost}
       read -p "api port [9292]: " cocoapods_api__port
       cocoapods_api__port=${cocoapods_api__port:-9292}
       
