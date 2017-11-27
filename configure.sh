@@ -105,25 +105,25 @@ function configure_github {
 }
 
 function configure_bitbucket_server {
-  read -p "Configure Bitbucket Server (Y|N)? [N]: " bitbucket__enabled
-  case $bitbucket__enabled in
+  read -p "Configure Bitbucket Server (Y|N)? [N]: " bitbucket_server__enabled
+  case $bitbucket_server__enabled in
     [Yy]* )
       echo "Configuring Bitbucket!"
       echo
-      bitbucket__enabled=true
-      read -p "Bitbucket base URL [http://localhost:7990/]: " bitbucket__base_url
-      bitbucket__base_url=${bitbucket__base_url:-http://localhost:7990/}
-      read -p "Bitbucket oauth2 client id [fossa]: " bitbucket__oauth2_client_id
-      bitbucket__oauth2_client_id=${bitbucket__oauth2_client_id:-fossa}
-      qnotempty "Bitbucket username: " bitbucket__credentials__basic__username "Bitbucket username cannot be empty. Try again!"
-      qpasswordretry "Bitbucket password: " "bitbucket__credentials__basic__password" false
+      bitbucket_server__enabled=true
+      read -p "Bitbucket base URL [http://localhost:7990/]: " bitbucket_server__base_url
+      bitbucket_server__base_url=${bitbucket_server__base_url:-http://localhost:7990/}
+      read -p "Bitbucket oauth2 client id [fossa]: " bitbucket_server__oauth2_client_id
+      bitbucket_server__oauth2_client_id=${bitbucket_server__oauth2_client_id:-fossa}
+      qnotempty "Bitbucket username: " bitbucket_server__credentials__basic__username "Bitbucket username cannot be empty. Try again!"
+      qpasswordretry "Bitbucket password: " "bitbucket_server__credentials__basic__password" false
 
       echo "Finished configuring Bitbucket!"
       echo
     ;;
     * )
       echo "Skipping Bitbucket configuration"
-      bitbucket__enabled=""
+      bitbucket_server__enabled=""
       echo
     ;;
   esac
