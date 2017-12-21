@@ -23,7 +23,6 @@ View `PREINSTALL.md` on a full guide on how to set up the box.
 - SMTP server host/port
 - Postgres host, port, username & password
 - Database in Postgres named "fossa", accessible to the user
-- Database in Postgres named "rubygems", accessible to the user
 
 Make sure all of these endpoints are accessible from the machine running FOSSA.
 
