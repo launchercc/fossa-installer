@@ -4,6 +4,7 @@ DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
+DATADIR="/var/data/data"
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -30,8 +31,8 @@ function init {
   echo "Initializing Fossa";
 
   # Create directories
-  if [ ! -d /var/data/fossa ]; then
-    sudo mkdir -p /var/data/fossa
+  if [ ! -d $DATADIR ]; then
+    sudo mkdir -p $DATADIR
   fi;
   
   echo "Please provide docker login credentials."
@@ -73,40 +74,49 @@ function upgrade {
   echo "Fossa Upgraded"
 }
 
+function preflight {
+  echo "Running preflight checks..."
+  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight
+}
+
 function start {
   echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.4.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.5.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0
   else
-    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run migrate
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
   fi;
+
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
-    docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
     
     # Run Cocoapods API
-    docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v /var/data/fossa:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+    docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
   fi
+
+  # run preflight checks, exit if failed
+
   # run core server
-  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start
+  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
 
   # run watchdogs
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:task
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:revision
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:updateHook
-  docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:watchdogs:dependencyLock
+  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
+  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
+  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
+  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run -d --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data $DOCKER_IMAGE npm run start:agent
+    docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
 }
@@ -161,6 +171,13 @@ case "$1" in
       stop;
     fi;
     start;
+    ;;
+
+    preflight)
+    if isrunning; then
+      stop;
+    fi;
+    preflight;
     ;;
 
     status)
