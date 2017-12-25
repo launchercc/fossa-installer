@@ -4,7 +4,7 @@ DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
-DATADIR="/var/data/data"
+DATADIR="/var/data/fossa"
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
