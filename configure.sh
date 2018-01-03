@@ -12,6 +12,7 @@ function configure_environment {
   echo "Step 2: Database"
   echo
   configure_database
+  configure_rubygems_database
 
   echo
   echo "Step 3: Email"
@@ -56,6 +57,29 @@ function configure_database {
   read -p "Fossa Database username [fossa]: " db__username
   db__username=${db__username:-fossa}
   qpasswordretry "Fossa Database password: " "db__password" false
+}
+
+function configure_rubygems_database {
+  read -p "Configure rubygems (Y|N)? [N]: " db_rubygems__enabled
+  case $db_rubygems__enabled in
+    [Yy]* )
+      db_rubygems__enabled=true
+      read -p "Rubygems Database hostname [localhost]: " db_rubygems__host
+      db_rubygems__host=${db_rubygems__host:-localhost}
+      read -p "Rubygems Database port [5432]: " db_rubygems__port
+      db_rubygems__port=${db_rubygems__port:-5432}
+      read -p "Rubygems Database name [rubygems]: " db_rubygems__database
+      db_rubygems__database=${db_rubygems__database:-rubygems}
+      read -p "Rubygems Database username [fossa]: " db_rubygems__username
+      db_rubygems__username=${db_rubygems__username:-fossa}
+      qpasswordretry "Rubygems Database password: " "db_rubygems__password" false
+    ;;
+    * )
+      echo "Skipping Rubygems configuration"
+      db_rubygems__enabled=""
+      echo
+    ;;
+  esac
 }
 
 function configure_github {
