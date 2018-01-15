@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-TOP_DIR="$(dirname "$(readlink -f "$0")")"
+TOP_DIR=${TOP_DIR-"$(dirname "$(readlink -f "$0")")"}
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
-DATADIR="/var/data/fossa"
+DATADIR=${DATADIR-"/var/data/fossa"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -63,7 +63,7 @@ function upgrade {
   if [ "$cocoapods_api__enabled" = true ]; then
     # Fetch latest cocoapods api image
     docker pull $COCOAPODS_DOCKER_IMAGE
-  fi
+  fi;
 
 
   if [ $(docker images -f "dangling=true" -q) ]; then
@@ -76,12 +76,28 @@ function upgrade {
 
 function preflight {
   echo "Running preflight checks..."
-  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight
+  echo "================================"
+  # run and return stdout or stderr state of this
+  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent
 }
 
 function start {
   echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
+
+  if [ "$SKIP_PREFLIGHT" != true ]; then
+    # preflight checks
+    if preflight; then
+      echo "Preflight checks passed, booting..."
+    else
+      echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
+      exit 1;
+    fi
+  else
+    echo "Skipping preflight checks..."
+  fi;
+
+  
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
@@ -94,8 +110,8 @@ function start {
 
   if [ "$db_rubygems__enabled" = true ]; then
     # Migrate rubygems database
-    docker run --env-file ${TOP_DIR}/config.env -v /var/data/fossa:/fossa/public/data -v /var/data/fossa/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod --output /opt/ruby/rubygems_data_dump.tar
-  fi
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data -v ${DATADIR}/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod --output /opt/ruby/rubygems_data_dump.tar
+  fi;
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
@@ -103,9 +119,7 @@ function start {
     
     # Run Cocoapods API
     docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
-  fi
-
-  # run preflight checks, exit if failed
+  fi;
 
   # run core server
   docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
