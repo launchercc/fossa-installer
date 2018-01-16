@@ -59,12 +59,10 @@ In the machine that's running postgres (could be the same), run the following:
 mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.4.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
-sudo -u postgres psql -c "CREATE DATABASE rubygems"
 
 # replace the default 'fossa123' password with what you have in config.env
 sudo -u postgres psql -c "CREATE USER fossa WITH PASSWORD 'fossa123';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE fossa TO fossa;"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE rubygems TO fossa;"
 
 # Install trigram extension
 sudo -u postgres psql fossa -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"

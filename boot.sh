@@ -108,11 +108,6 @@ function start {
     docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
   fi;
 
-  if [ "$db_rubygems__enabled" = true ]; then
-    # Migrate rubygems database
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data -v ${DATADIR}/.ruby:/opt/ruby $DOCKER_IMAGE npm run migrate:rubygems:prod --output /opt/ruby/rubygems_data_dump.tar
-  fi;
-
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
     docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
