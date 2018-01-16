@@ -5,6 +5,7 @@ COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-a
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
+SUPPORT_BUNDLE="fossa_support_bundle"
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -146,6 +147,89 @@ function stop {
   docker rm -f $( allinstances ) 2>&1 > /dev/null
 }
 
+function appendHeaderToSupportBundle {
+  echo "--------------------------------------------------------------" >> $SUPPORT_BUNDLE
+  echo "$1" >> $SUPPORT_BUNDLE
+  echo "--------------------------------------------------------------" >> $SUPPORT_BUNDLE
+}
+
+function supportbundle {
+  # clear any old support bundle
+  rm $SUPPORT_BUNDLE
+
+  # run pre flight first
+  appendHeaderToSupportBundle "PRE-FLIGHT CHECK"
+  preflight >> $SUPPORT_BUNDLE 2>&1
+
+  # append current config to file
+  appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
+  cat ${TOP_DIR}/config.env >> $SUPPORT_BUNDLE 2>&1
+  
+  # Check contents of /var/data/fossa
+  appendHeaderToSupportBundle "contents of /fossa/public/data"
+  ls -al /var/data/fossa >> $SUPPORT_BUNDLE 2>&1
+  
+  # Check size of /var/data/fossa/.gitrepos
+  appendHeaderToSupportBundle "size of /fossa/public/data/.gitrepos"
+  du -sh /var/data/fossa/.gitrepos/ >> $SUPPORT_BUNDLE 2>&1
+
+  # Check cocoapods cache
+  appendHeaderToSupportBundle "Cocoapods cache"
+  ls -al /var/data/fossa/.cocoapods/ >> $SUPPORT_BUNDLE 2>&1
+
+  # Check rubygems cache
+  appendHeaderToSupportBundle "Rubygems cache"
+  ls -al /var/data/fossa/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
+
+  # DOCKER info
+  appendHeaderToSupportBundle "DOCKER INFO"
+  docker info >> $SUPPORT_BUNDLE 2>&1
+  # append docker stats to file
+  appendHeaderToSupportBundle "DOCKER STATS"
+  docker stats --no-stream >> $SUPPORT_BUNDLE 2>&1
+  # DOCKER images (to check last updated)
+  appendHeaderToSupportBundle "DOCKER IMAGES"
+  docker images >> $SUPPORT_BUNDLE 2>&1
+
+  # append all docker logs to file
+  for i in $( allinstances ); do
+    appendHeaderToSupportBundle "DOCKER INSPECTION & LOGS"
+    docker logs $i >> $SUPPORT_BUNDLE 2>&1
+    echo "" >> $SUPPORT_BUNDLE
+    docker inspect $i >> $SUPPORT_BUNDLE 2>&1
+    echo "" >> $SUPPORT_BUNDLE
+  done
+  
+  # POSTGRES info for support bundle
+  appendHeaderToSupportBundle "POSTGRES NOW()"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT now();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES DB USERS"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "\du" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES FOSSA VERSION"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT fossa_version();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES available extensions"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name, default_version, installed_version, comment FROM pg_available_extensions ORDER BY name" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES table collation info"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT datname, datcollate, datctype FROM pg_database" >> $SUPPORT_BUNDLE 2>&1
+  
+  appendHeaderToSupportBundle "POSTGRES running queries"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT query_start, query from pg_stat_activity WHERE state='active'" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Migrations"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name from \"SequelizeMeta\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Indexes"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT tablename, indexname, indexdef from pg_indexes" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "END OF SUPPORT BUNDLE" 
+
+  echo "Support bundle generated at $SUPPORT_BUNDLE"
+}
+
 case "$1" in
     init)
     if isrunning; then
@@ -193,6 +277,10 @@ case "$1" in
     preflight;
     ;;
 
+    supportbundle)
+      supportbundle
+    ;;
+
     status)
     if isrunning; then
       echo "Fossa is running"
@@ -202,7 +290,7 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $0 {start|stop|restart|init|upgrade}"
+    echo "Usage: $0 {start|stop|restart|init|upgrade|preflight|supportbundle}"
     exit 1
     ;;
 esac
