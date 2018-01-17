@@ -47,15 +47,34 @@ function configure_server {
 }
 
 function configure_database {
-  read -p "Fossa Database hostname [localhost]: " db__host
-  db__host=${db__host:-localhost}
-  read -p "Fossa Database port [5432]: " db__port
-  db__port=${db__port:-5432}
-  read -p "Fossa Database name [fossa]: " db__database
-  db__database=${db__database:-fossa}
-  read -p "Fossa Database username [fossa]: " db__username
-  db__username=${db__username:-fossa}
-  qpasswordretry "Fossa Database password: " "db__password" false
+  read -p "Use external production database (Y|N)? [N]: " db__builtin
+  case $db__builtin in
+    [Yy]* )
+      db__builtin=""
+      echo "Configuring database!"
+      read -p "Fossa Database hostname [localhost]: " db__host
+      db__host=${db__host:-localhost}
+      read -p "Fossa Database port [5432]: " db__port
+      db__port=${db__port:-5432}
+      read -p "Fossa Database name [fossa]: " db__database
+      db__database=${db__database:-fossa}
+      read -p "Fossa Database username [fossa]: " db__username
+      db__username=${db__username:-fossa}
+      qpasswordretry "Fossa Database password: " "db__password" false
+
+      echo "Finished configuring database!"
+      echo
+    ;;
+    * )
+      echo "Using builtin database... note: this is only recommended for evaluation purposes and might create performance issues at scale"
+      db__builtin=true
+      db__host=localhost
+      db__username=fossa
+      db__password=fossa123
+      db__database=fossa
+      echo
+    ;;
+  esac
 }
 
 function configure_github {

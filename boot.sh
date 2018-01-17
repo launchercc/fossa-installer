@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 TOP_DIR=${TOP_DIR-"$(dirname "$(readlink -f "$0")")"}
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
+DB_DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/db:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
+DB_DATADIR=${DATADIR-"/var/data/pg"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -42,10 +44,16 @@ function init {
   # Fetch latest image
   docker pull $DOCKER_IMAGE
 
+  if [ "$db__builtin" = true ]; then
+    # Fetch latest db api image
+    docker pull $DB_DOCKER_IMAGE
+  fi;
+
   if [ "$cocoapods_api__enabled" = true ]; then
     # Fetch latest cocoapods api image
     docker pull $COCOAPODS_DOCKER_IMAGE
   fi
+
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
@@ -59,6 +67,11 @@ function upgrade {
 
   # Fetch latest image
   docker pull $DOCKER_IMAGE
+
+  if [ "$db__builtin" = true ]; then
+    # Fetch latest db api image
+    docker pull $DB_DOCKER_IMAGE
+  fi;
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Fetch latest cocoapods api image
@@ -97,6 +110,11 @@ function start {
     echo "Skipping preflight checks..."
   fi;
 
+  if [ "$db__builtin" = true ]; then
+    # Using builtin db, so lets boot it first...
+    echo "Booting built-in FOSSA db..."
+    docker run -v $DB_DATADIR:/var/lib/postgresql/data/fossa -p 5432:5432 $DB_DOCKER_IMAGE
+  fi;
   
 
   # Migrate database
