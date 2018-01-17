@@ -5,7 +5,6 @@ COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-a
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
-SUPPORT_BUNDLE="fossa_support_bundle"
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -154,8 +153,7 @@ function appendHeaderToSupportBundle {
 }
 
 function supportbundle {
-  # clear any old support bundle
-  rm $SUPPORT_BUNDLE
+  local SUPPORT_BUNDLE="$DATADIR/$(date +%s)-fossa.bundle"
 
   # run pre flight first
   appendHeaderToSupportBundle "PRE-FLIGHT CHECK"
@@ -164,7 +162,7 @@ function supportbundle {
   # append current config to file
   appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
   cat ${TOP_DIR}/config.env >> $SUPPORT_BUNDLE 2>&1
-  
+
   # Check contents of /var/data/fossa
   appendHeaderToSupportBundle "contents of /fossa/public/data"
   ls -al /var/data/fossa >> $SUPPORT_BUNDLE 2>&1
@@ -180,6 +178,49 @@ function supportbundle {
   # Check rubygems cache
   appendHeaderToSupportBundle "Rubygems cache"
   ls -al /var/data/fossa/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
+
+  # POSTGRES info for support bundle
+  appendHeaderToSupportBundle "POSTGRES NOW()"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT now();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES DB USERS"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "\du" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES FOSSA VERSION"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT fossa_version();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES available extensions"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name, default_version, installed_version, comment FROM pg_available_extensions ORDER BY name" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES table collation info"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT datname, datcollate, datctype FROM pg_database" >> $SUPPORT_BUNDLE 2>&1
+  
+  appendHeaderToSupportBundle "POSTGRES running queries"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT query_start, query from pg_stat_activity WHERE state='active'" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Indexes"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT tablename, indexname, indexdef FROM pg_indexes ORDER BY tablename" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Migrations"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name from \"SequelizeMeta\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Users"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT username, email from \"Users\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Organizations"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT id, title from \"Organizations\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Policies & Rules"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT \"Policies\".title, \"Policies\".\"organizationId\", count(\"Rules\".*) as rule_count FROM \"Policies\" INNER JOIN \"Rules\" ON \"Rules\".\"policyId\" = \"Policies\".id GROUP BY \"Policies\".id" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Licenses"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(title) as license_count from \"Licenses\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES DependencyLocks Count"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(*) as dep_lock_count from \"DependencyLocks\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES Projects Count"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(*) as projects_count from \"Projects\"" >> $SUPPORT_BUNDLE 2>&1
 
   # DOCKER info
   appendHeaderToSupportBundle "DOCKER INFO"
@@ -200,34 +241,15 @@ function supportbundle {
     echo "" >> $SUPPORT_BUNDLE
   done
   
-  # POSTGRES info for support bundle
-  appendHeaderToSupportBundle "POSTGRES NOW()"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT now();" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES DB USERS"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "\du" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES FOSSA VERSION"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT fossa_version();" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES available extensions"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name, default_version, installed_version, comment FROM pg_available_extensions ORDER BY name" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES table collation info"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT datname, datcollate, datctype FROM pg_database" >> $SUPPORT_BUNDLE 2>&1
-  
-  appendHeaderToSupportBundle "POSTGRES running queries"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT query_start, query from pg_stat_activity WHERE state='active'" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES All Migrations"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name from \"SequelizeMeta\"" >> $SUPPORT_BUNDLE 2>&1
-
-  appendHeaderToSupportBundle "POSTGRES All Indexes"
-  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT tablename, indexname, indexdef from pg_indexes" >> $SUPPORT_BUNDLE 2>&1
-
   appendHeaderToSupportBundle "END OF SUPPORT BUNDLE" 
-
-  echo "Support bundle generated at $SUPPORT_BUNDLE"
+  
+  echo "******************************************************************************************"
+  echo "Support bundle generated at:"
+  echo ""
+  echo "    \`$SUPPORT_BUNDLE\`"
+  echo ""
+  echo "Attach this file and email to support@fossa.io"
+  echo "******************************************************************************************"
 }
 
 case "$1" in
