@@ -18,8 +18,8 @@ function setup {
   configure_environment
   save_configuration
   setup_system
-  download_extensions
-  setup_database
+  # download_extensions
+  # setup_database
 
   echo
   echo "And we're done! Fossa is ready to be used!"

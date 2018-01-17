@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 TOP_DIR=${TOP_DIR-"$(dirname "$(readlink -f "$0")")"}
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
+DB_DOCKER_IMAGE=${DB_DOCKER_IMAGE-"quay.io/fossa/db:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
+DB_DATADIR=${DB_DATADIR-"/var/data/pg"}
 PREFLIGHTLOG=${PREFLIGHTLOG-"$DATADIR/fossa-preflight.log"}
 MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
 
@@ -13,6 +15,9 @@ MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
 
 function allinstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
+  if [ "$db__builtin" = true ]; then
+    docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -aq
+  fi;
   if [ "$cocoapods_api__enabled" = true ]; then
     docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
   fi
@@ -20,6 +25,7 @@ function allinstances {
 
 function runninginstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -q
+  # do not include db as we want to boot separately
   if [ "$cocoapods_api__enabled" = true ]; then
     docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -q
   fi
@@ -27,6 +33,10 @@ function runninginstances {
 
 function isrunning {
   [ "$( runninginstances )" ]
+}
+
+function isdbrunning {
+  [ "$( docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -q )" ]
 }
 
 function init {
@@ -44,10 +54,16 @@ function init {
   # Fetch latest image
   docker pull $DOCKER_IMAGE
 
+  if [ "$db__builtin" = true ]; then
+    # Fetch latest db api image
+    docker pull $DB_DOCKER_IMAGE
+  fi;
+
   if [ "$cocoapods_api__enabled" = true ]; then
     # Fetch latest cocoapods api image
     docker pull $COCOAPODS_DOCKER_IMAGE
   fi
+
   if [ $(docker images -f "dangling=true" -q) ]; then
     # Remove image entirely
     docker rmi $(docker images -f "dangling=true" -q)
@@ -61,6 +77,11 @@ function upgrade {
 
   # Fetch latest image
   docker pull $DOCKER_IMAGE
+
+  if [ "$db__builtin" = true ]; then
+    # Fetch latest db api image
+    docker pull $DB_DOCKER_IMAGE
+  fi;
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Fetch latest cocoapods api image
@@ -78,10 +99,9 @@ function upgrade {
 
 function preflight {
   echo "Running preflight checks..."
-  echo "================================"
-
+  echo "---------------------------"
   # run and return stdout or stderr state of this (and write to log file)
-  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
+  docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
 
   return "${PIPESTATUS[0]}" # return the exit code of the docker run command
 }
@@ -89,6 +109,30 @@ function preflight {
 function start {
   echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
+
+  if [ "$db__builtin" = true ] && ! isdbrunning; then
+    # Using builtin db, so lets boot it first...
+    echo "Booting built-in FOSSA db..."
+    docker run --name fossadb --rm -d -v $DB_DATADIR:/var/lib/postgresql/data/fossa -p 5432:5432 $DB_DOCKER_IMAGE
+    echo "Waiting for db..."
+
+    RETRIES=60
+    DB_IS_READY=false 
+    until [ $DB_IS_READY = true ]; do 
+      if docker logs fossadb 2>&1 | grep -q 'No such container' || [ $RETRIES -eq 0 ]; then
+        # TODO: add some way of getting debug logs
+        echo "Failed to boot built-in db."
+        stop;
+        exit 1;
+      elif docker logs fossadb 2>&1 | grep -q 'ready to accept connections'; then 
+        DB_IS_READY=true
+        echo "Database is ready!"
+      else 
+        echo "Checking if ready; $((RETRIES--))s timeout..."
+        sleep 1
+      fi;
+    done
+  fi;
 
   if [ "$SKIP_PREFLIGHT" != true ]; then
     # preflight checks
@@ -98,6 +142,7 @@ function start {
     else
       echo ""
       echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
+      stop;
       echo "To generate a support bundle, run \`fossa supportbundle\`"
       exit 1;
     fi
@@ -105,15 +150,13 @@ function start {
     echo "Skipping preflight checks..."
   fi;
 
-  
-
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
   else
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
   fi;
 
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then # if the migration failed
@@ -125,40 +168,44 @@ function start {
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
-    docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    docker run --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
     
     # Run Cocoapods API
-    docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+    docker run --rm -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
   fi;
 
   # run core server
-  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
+  docker run --name fossacore --rm -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
 
   # run watchdogs
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
+    docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
+
+  docker logs fossacore --follow
 }
 
 function stop {
   echo "Stopping Fossa"
 
-  current=$( runninginstances )
+  current=$(runninginstances)
 
-  # Kill running image
-  docker kill $( runninginstances ) 2>&1 > /dev/null
+  if $current; then
+    # Kill running images
+    docker kill $current 2>&1 > /dev/null
+  fi;
   
   # Remove existing container
-  docker rm -f $( allinstances ) 2>&1 > /dev/null
+  # docker rm -f $( allinstances ) 2>&1 > /dev/null
 }
 
 function appendHeaderToSupportBundle {
