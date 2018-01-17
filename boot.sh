@@ -93,8 +93,10 @@ function start {
   if [ "$SKIP_PREFLIGHT" != true ]; then
     # preflight checks
     if preflight; then
+      echo ""
       echo "Preflight checks passed, booting..."
     else
+      echo ""
       echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
       echo "To generate a support bundle, run \`fossa supportbundle\`"
       exit 1;
