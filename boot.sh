@@ -9,6 +9,8 @@ DATADIR=${DATADIR-"/var/data/fossa"}
 DB_DATADIR=${DB_DATADIR-"/var/data/pg"}
 PREFLIGHTLOG=${PREFLIGHTLOG-"$DATADIR/fossa-preflight.log"}
 MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
+SERVERLOG=${SERVERLOG-"$DATADIR/fossa-server.log"}
+AGENTLOG=${AGENTLOG-"$DATADIR/fossa-agent.log"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -197,12 +199,8 @@ function start {
 function stop {
   echo "Stopping Fossa"
 
-  current=$(runninginstances)
-
-  if $current; then
-    # Kill running images
-    docker kill $current 2>&1 > /dev/null
-  fi;
+  # Kill running images
+  docker kill $( runninginstances ) 2>&1 > /dev/null
   
   # Remove existing container
   # docker rm -f $( allinstances ) 2>&1 > /dev/null
