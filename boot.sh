@@ -5,6 +5,8 @@ COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-a
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
+PREFLIGHTLOG=${PREFLIGHTLOG-"$DATADIR/fossa-preflight.log"}
+MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -77,8 +79,10 @@ function upgrade {
 function preflight {
   echo "Running preflight checks..."
   echo "================================"
-  # run and return stdout or stderr state of this
-  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent
+
+  # run and return stdout or stderr state of this (and write to log file)
+  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
+  return "${PIPESTATUS[0]}" # return the exit code of the docker run command
 }
 
 function start {
@@ -91,6 +95,7 @@ function start {
       echo "Preflight checks passed, booting..."
     else
       echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
+      echo "To generate a support bundle, run \`fossa supportbundle\`"
       exit 1;
     fi
   else
@@ -101,11 +106,11 @@ function start {
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
   else
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
   fi;
 
   if [ "$cocoapods_api__enabled" = true ]; then
@@ -153,11 +158,17 @@ function appendHeaderToSupportBundle {
 }
 
 function supportbundle {
+  echo "Creating support bundle..."
   local SUPPORT_BUNDLE="$DATADIR/$(date +%s)-fossa.bundle"
 
   # run pre flight first
   appendHeaderToSupportBundle "PRE-FLIGHT CHECK"
-  preflight >> $SUPPORT_BUNDLE 2>&1
+  preflight >/dev/null 2>&1 
+  cat $PREFLIGHTLOG >> $SUPPORT_BUNDLE 2>&1 # get result from logs
+
+  # get migration log
+  appendHeaderToSupportBundle "MIGRATION LOGS"
+  cat $MIGRATIONLOG >> $SUPPORT_BUNDLE 2>&1
 
   # append current config to file
   appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
@@ -300,7 +311,7 @@ case "$1" in
     ;;
 
     supportbundle)
-      supportbundle
+    supportbundle;
     ;;
 
     status)
