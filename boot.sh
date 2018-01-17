@@ -103,9 +103,9 @@ function preflight {
   echo "Running preflight checks..."
   echo "---------------------------"
   # run and return stdout or stderr state of this (and write to log file)
-  docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
 
-  return "${PIPESTATUS[0]}" # return the exit code of the docker run command
+  return "${PIPESTATUS[0]}" # return the exit code of the docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  command
 }
 
 function start {
@@ -154,11 +154,11 @@ function start {
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
   elif [[ ${PRE_050} ]]; then
-    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
   else
-    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
   fi;
 
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then # if the migration failed
@@ -170,26 +170,26 @@ function start {
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
-    docker run --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
     
     # Run Cocoapods API
-    docker run --rm -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
   fi;
 
   # run core server
-  docker run --name fossacore --rm -di --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --name fossacore --rm -di --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
 
   # run watchdogs
-  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
-  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
-  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
-  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
 

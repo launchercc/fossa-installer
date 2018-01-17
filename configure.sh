@@ -68,7 +68,7 @@ function configure_database {
     * )
       echo "Using builtin database... note: this is only recommended for evaluation purposes and might create performance issues at scale"
       db__builtin=true
-      db__host=localhost
+      db__host=db
       db__username=fossa
       db__password=fossa123
       db__database=fossa
