@@ -1,3 +1,0 @@
-[submodule "tools/pg/extensions"]
-	path = tools/pg/extensions
-	url = https://github.com/fossas/pg_fossa

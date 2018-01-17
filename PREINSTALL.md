@@ -19,7 +19,7 @@ sudo <fossa installer base>/setup.sh
 
 ## Manual Setup
 
-### 1. Set up the environment
+Download and install Docker, if you don't have it already:
 
 ```bash
 # Update the registry
@@ -27,7 +27,7 @@ apt-get update
 apt-get -y install apt-transport-https ca-certificates
 apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 
-# Download and install docker, postgres
+# Download and install docker
 # NOTE: Do not use Docker 1.9.1 because of: https://github.com/docker/docker/issues/18180
 grep -Fq "deb https://apt.dockerproject.org/repo ubuntu-trusty main" < /etc/apt/sources.list.d/docker.list || ( touch /etc/apt/sources.list.d/docker.list ; echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" >> /etc/apt/sources.list.d/docker.list )
 apt-get update
@@ -51,9 +51,9 @@ sudo sysctl -p /etc/sysctl.conf
 service docker restart
 ```
 ​
-### 2. Set up the Postgres database
+### 2. (Optional) Existing Database Setup
 
-In the machine that's running postgres (could be the same), run the following:
+FOSSA relies on Postgres 9.3+.  For evaluation purposes, we distribute a bundle with a built-in database container that's been pre-configured.  However, if you have an existing Postgre machine, you can configure FOSSA's extensions and setup like so:
 
 ```bash
 mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.4.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
@@ -115,7 +115,7 @@ As part of the installer, you will be prompted for a `username, password and ema
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.15.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.16.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
 
 # Configure FOSSA first-time
 vi ~/fossa/config.env
