@@ -14,7 +14,7 @@ DB_DATADIR=${DB_DATADIR-"/var/data/pg"}
 function allinstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
   if [ "$db__builtin" = true ]; then
-    docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -q
+    docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -aq
   fi;
   if [ "$cocoapods_api__enabled" = true ]; then
     docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
@@ -97,9 +97,9 @@ function upgrade {
 
 function preflight {
   echo "Running preflight checks..."
-  echo "================================"
+  echo "---------------------------"
   # run and return stdout or stderr state of this
-  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent
+  docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent
 }
 
 function start {
@@ -124,7 +124,7 @@ function start {
         DB_IS_READY=true
         echo "Database is ready!"
       else 
-        echo "Waiting for Postgres server, $((RETRIES--))s timeout..."
+        echo "Checking if ready; $((RETRIES--))s timeout..."
         sleep 1
       fi;
     done
@@ -145,37 +145,39 @@ function start {
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0
   else
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
+    docker run --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
   fi;
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
-    docker run --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    docker run --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
     
     # Run Cocoapods API
-    docker run -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
+    docker run --rm -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
   fi;
 
   # run core server
-  docker run -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
+  docker run --name fossacore --rm -d --env-file ${TOP_DIR}/config.env -p 80:80 -p 443:443 -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start
 
   # run watchdogs
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
-  docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:task
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:revision
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:updateHook
+  docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:watchdogs:dependencyLock
 
   current=$( runninginstances )
 
   # run agents
   while [ ${NUMBER_OF_AGENTS} -gt 0 ]; do
-    docker run -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
+    docker run --rm -d --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run start:agent
     (( NUMBER_OF_AGENTS-- ))
   done;
+
+  docker logs fossacore --follow
 }
 
 function stop {
@@ -189,7 +191,7 @@ function stop {
   fi;
   
   # Remove existing container
-  docker rm -f $( allinstances ) 2>&1 > /dev/null
+  # docker rm -f $( allinstances ) 2>&1 > /dev/null
 }
 
 case "$1" in
