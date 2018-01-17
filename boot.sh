@@ -82,6 +82,7 @@ function preflight {
 
   # run and return stdout or stderr state of this (and write to log file)
   docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
+
   return "${PIPESTATUS[0]}" # return the exit code of the docker run command
 }
 
@@ -112,6 +113,13 @@ function start {
   else
     docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
   fi;
+
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then # if the migration failed
+    echo ""
+    echo "Migration has failed. Make sure that your config is correct before trying again."
+    echo "To generate a support bundle, run \`fossa supportbundle\`"
+    exit 1;
+  fi
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
