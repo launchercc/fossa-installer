@@ -5,6 +5,8 @@ COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-a
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
+PREFLIGHTLOG=${PREFLIGHTLOG-"$DATADIR/fossa-preflight.log"}
+MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
@@ -77,8 +79,11 @@ function upgrade {
 function preflight {
   echo "Running preflight checks..."
   echo "================================"
-  # run and return stdout or stderr state of this
-  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent
+
+  # run and return stdout or stderr state of this (and write to log file)
+  docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run preflight --silent  2>&1 | tee $PREFLIGHTLOG
+
+  return "${PIPESTATUS[0]}" # return the exit code of the docker run command
 }
 
 function start {
@@ -88,9 +93,12 @@ function start {
   if [ "$SKIP_PREFLIGHT" != true ]; then
     # preflight checks
     if preflight; then
+      echo ""
       echo "Preflight checks passed, booting..."
     else
+      echo ""
       echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
+      echo "To generate a support bundle, run \`fossa supportbundle\`"
       exit 1;
     fi
   else
@@ -101,12 +109,19 @@ function start {
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
   elif [[ ${PRE_050} ]]; then
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
   else
-    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate
+    docker run --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE yarn run migrate 2>&1 | tee $MIGRATIONLOG
   fi;
+
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then # if the migration failed
+    echo ""
+    echo "Migration has failed. Make sure that your config is correct before trying again."
+    echo "To generate a support bundle, run \`fossa supportbundle\`"
+    exit 1;
+  fi
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
@@ -144,6 +159,118 @@ function stop {
   
   # Remove existing container
   docker rm -f $( allinstances ) 2>&1 > /dev/null
+}
+
+function appendHeaderToSupportBundle {
+  echo "--------------------------------------------------------------" >> $SUPPORT_BUNDLE
+  echo "$1" >> $SUPPORT_BUNDLE
+  echo "--------------------------------------------------------------" >> $SUPPORT_BUNDLE
+}
+
+function supportbundle {
+  echo "Creating support bundle..."
+  local SUPPORT_BUNDLE="$DATADIR/$(date +%s)-fossa.bundle"
+
+  # run pre flight first
+  appendHeaderToSupportBundle "PRE-FLIGHT CHECK"
+  preflight >/dev/null 2>&1 
+  cat $PREFLIGHTLOG >> $SUPPORT_BUNDLE 2>&1 # get result from logs
+
+  # get migration log
+  appendHeaderToSupportBundle "MIGRATION LOGS"
+  cat $MIGRATIONLOG >> $SUPPORT_BUNDLE 2>&1
+
+  # append current config to file
+  appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
+  cat ${TOP_DIR}/config.env >> $SUPPORT_BUNDLE 2>&1
+
+  # Check contents of /var/data/fossa
+  appendHeaderToSupportBundle "contents of /fossa/public/data"
+  ls -al /var/data/fossa >> $SUPPORT_BUNDLE 2>&1
+  
+  # Check size of /var/data/fossa/.gitrepos
+  appendHeaderToSupportBundle "size of /fossa/public/data/.gitrepos"
+  du -sh /var/data/fossa/.gitrepos/ >> $SUPPORT_BUNDLE 2>&1
+
+  # Check cocoapods cache
+  appendHeaderToSupportBundle "Cocoapods cache"
+  ls -al /var/data/fossa/.cocoapods/ >> $SUPPORT_BUNDLE 2>&1
+
+  # Check rubygems cache
+  appendHeaderToSupportBundle "Rubygems cache"
+  ls -al /var/data/fossa/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
+
+  # POSTGRES info for support bundle
+  appendHeaderToSupportBundle "POSTGRES NOW()"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT now();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES DB USERS"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "\du" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES FOSSA VERSION"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT fossa_version();" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES available extensions"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name, default_version, installed_version, comment FROM pg_available_extensions ORDER BY name" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES table collation info"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT datname, datcollate, datctype FROM pg_database" >> $SUPPORT_BUNDLE 2>&1
+  
+  appendHeaderToSupportBundle "POSTGRES running queries"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT query_start, query from pg_stat_activity WHERE state='active'" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Indexes"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT tablename, indexname, indexdef FROM pg_indexes ORDER BY tablename" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Migrations"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT name from \"SequelizeMeta\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Users"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT username, email from \"Users\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Organizations"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT id, title from \"Organizations\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Policies & Rules"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT \"Policies\".title, \"Policies\".\"organizationId\", count(\"Rules\".*) as rule_count FROM \"Policies\" INNER JOIN \"Rules\" ON \"Rules\".\"policyId\" = \"Policies\".id GROUP BY \"Policies\".id" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES All Licenses"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(title) as license_count from \"Licenses\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES DependencyLocks Count"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(*) as dep_lock_count from \"DependencyLocks\"" >> $SUPPORT_BUNDLE 2>&1
+
+  appendHeaderToSupportBundle "POSTGRES Projects Count"
+  sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(*) as projects_count from \"Projects\"" >> $SUPPORT_BUNDLE 2>&1
+
+  # DOCKER info
+  appendHeaderToSupportBundle "DOCKER INFO"
+  docker info >> $SUPPORT_BUNDLE 2>&1
+  # append docker stats to file
+  appendHeaderToSupportBundle "DOCKER STATS"
+  docker stats --no-stream >> $SUPPORT_BUNDLE 2>&1
+  # DOCKER images (to check last updated)
+  appendHeaderToSupportBundle "DOCKER IMAGES"
+  docker images >> $SUPPORT_BUNDLE 2>&1
+
+  # append all docker logs to file
+  for i in $( allinstances ); do
+    appendHeaderToSupportBundle "DOCKER INSPECTION & LOGS"
+    docker logs $i >> $SUPPORT_BUNDLE 2>&1
+    echo "" >> $SUPPORT_BUNDLE
+    docker inspect $i >> $SUPPORT_BUNDLE 2>&1
+    echo "" >> $SUPPORT_BUNDLE
+  done
+  
+  appendHeaderToSupportBundle "END OF SUPPORT BUNDLE" 
+  
+  echo "******************************************************************************************"
+  echo "Support bundle generated at:"
+  echo ""
+  echo "    \`$SUPPORT_BUNDLE\`"
+  echo ""
+  echo "Attach this file and email to support@fossa.io"
+  echo "******************************************************************************************"
 }
 
 case "$1" in
@@ -193,6 +320,10 @@ case "$1" in
     preflight;
     ;;
 
+    supportbundle)
+    supportbundle;
+    ;;
+
     status)
     if isrunning; then
       echo "Fossa is running"
@@ -202,7 +333,7 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $0 {start|stop|restart|init|upgrade}"
+    echo "Usage: $0 {start|stop|restart|init|upgrade|preflight|supportbundle}"
     exit 1
     ;;
 esac
