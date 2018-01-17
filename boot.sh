@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 TOP_DIR=${TOP_DIR-"$(dirname "$(readlink -f "$0")")"}
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
-DB_DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/db:release"}
+DB_DOCKER_IMAGE=${DB_DOCKER_IMAGE-"quay.io/fossa/db:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
 PRE_040=${PRE_040-}
 PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
-DB_DATADIR=${DATADIR-"/var/data/pg"}
+DB_DATADIR=${DB_DATADIR-"/var/data/pg"}
 
 . $TOP_DIR/config.env
 . $TOP_DIR/configure.sh
 
 function allinstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -aq
+  if [ "$db__builtin" = true ]; then
+    docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -q
+  fi;
   if [ "$cocoapods_api__enabled" = true ]; then
     docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -aq
   fi
@@ -20,6 +23,7 @@ function allinstances {
 
 function runninginstances {
   docker ps --filter="ancestor=$DOCKER_IMAGE" -q
+  # do not include db as we want to boot separately
   if [ "$cocoapods_api__enabled" = true ]; then
     docker ps --filter="ancestor=$COCOAPODS_DOCKER_IMAGE" -q
   fi
@@ -27,6 +31,10 @@ function runninginstances {
 
 function isrunning {
   [ "$( runninginstances )" ]
+}
+
+function isdbrunning {
+  [ "$( docker ps --filter="ancestor=$DB_DOCKER_IMAGE" -q )" ]
 }
 
 function init {
@@ -98,24 +106,42 @@ function start {
   echo "Starting Fossa"
   NUMBER_OF_AGENTS=${1-4}
 
+  if [ "$db__builtin" = true ] && ! isdbrunning; then
+    # Using builtin db, so lets boot it first...
+    echo "Booting built-in FOSSA db..."
+    docker run --name fossadb --rm -d -v $DB_DATADIR:/var/lib/postgresql/data/fossa -p 5432:5432 $DB_DOCKER_IMAGE
+    echo "Waiting for db..."
+
+    RETRIES=60
+    DB_IS_READY=false 
+    until [ $DB_IS_READY = true ]; do 
+      if docker logs fossadb 2>&1 | grep -q 'No such container' || [ $RETRIES -eq 0 ]; then
+        # TODO: add some way of getting debug logs
+        echo "Failed to boot built-in db."
+        stop;
+        exit 1;
+      elif docker logs fossadb 2>&1 | grep -q 'ready to accept connections'; then 
+        DB_IS_READY=true
+        echo "Database is ready!"
+      else 
+        echo "Waiting for Postgres server, $((RETRIES--))s timeout..."
+        sleep 1
+      fi;
+    done
+  fi;
+
   if [ "$SKIP_PREFLIGHT" != true ]; then
     # preflight checks
     if preflight; then
       echo "Preflight checks passed, booting..."
     else
       echo "Preflight checks failed. Fix your configuration or force boot with by setting the SKIP_PREFLIGHT env variable to true."
+      stop;
       exit 1;
     fi
   else
     echo "Skipping preflight checks..."
   fi;
-
-  if [ "$db__builtin" = true ]; then
-    # Using builtin db, so lets boot it first...
-    echo "Booting built-in FOSSA db..."
-    docker run -v $DB_DATADIR:/var/lib/postgresql/data/fossa -p 5432:5432 $DB_DOCKER_IMAGE
-  fi;
-  
 
   # Migrate database
   if [[ ${PRE_040} ]]; then
@@ -155,10 +181,12 @@ function start {
 function stop {
   echo "Stopping Fossa"
 
-  current=$( runninginstances )
+  current=$(runninginstances)
 
-  # Kill running image
-  docker kill $( runninginstances ) 2>&1 > /dev/null
+  if $current; then
+    # Kill running images
+    docker kill $current 2>&1 > /dev/null
+  fi;
   
   # Remove existing container
   docker rm -f $( allinstances ) 2>&1 > /dev/null
