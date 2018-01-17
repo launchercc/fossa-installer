@@ -183,15 +183,12 @@ function start {
 function stop {
   echo "Stopping Fossa"
 
-  current=$(runninginstances)
-
-  if $current; then
-    # Kill running images
-    docker kill $current 2>&1 > /dev/null
-  fi;
+  # Kill running images
+  docker kill $(runninginstances) 2>&1 > /dev/null
   
   # Remove existing container
   # docker rm -f $( allinstances ) 2>&1 > /dev/null
+  # NOTE: now that we run with --rm container should auto-rm
 }
 
 case "$1" in
