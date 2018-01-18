@@ -202,6 +202,7 @@ function configure_cocoapods {
       echo "Configuring Cocoapods!"
       echo
       cocoapods_api__enabled=true
+      cache__cocoapods__ignore=""
       read -p "api protocol [http]: " cocoapods_api__protocol
       cocoapods_api__protocol=${cocoapods_api__protocol:-http}
       read -p "api hostname [localhost]: " cocoapods_api__hostname
@@ -215,6 +216,7 @@ function configure_cocoapods {
     * )
       echo "Skipping Cocoapods API configuration"
       cocoapods_api__enabled=""
+      cache__cocoapods__ignore=true
       echo
     ;;
   esac
