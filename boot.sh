@@ -213,12 +213,17 @@ function appendHeaderToSupportBundle {
 }
 
 function supportbundle {
-  echo "Creating support bundle..."
-  local SUPPORT_BUNDLE="$DATADIR/$(date +%s)-fossa.bundle"
+  if [[ $(/usr/bin/id -u) -ne 0 ]]; then
+    echo "Command failed."
+    echo "supportbundle must be run as root."
+    exit 1
+  fi
 
-  # run pre flight first
+  echo "Creating support bundle..."
+  local SUPPORT_BUNDLE_FILE_NAME="$(date +%s)-fossa.bundle"
+  local SUPPORT_BUNDLE="$DATADIR/$SUPPORT_BUNDLE_FILE_NAME"
+
   appendHeaderToSupportBundle "PRE-FLIGHT CHECK"
-  preflight >/dev/null 2>&1 
   cat $PREFLIGHTLOG >> $SUPPORT_BUNDLE 2>&1 # get result from logs
 
   # get migration log
@@ -245,6 +250,7 @@ function supportbundle {
   appendHeaderToSupportBundle "Rubygems cache"
   ls -al /var/data/fossa/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
 
+  echo "Collecting Postgres information..."
   # POSTGRES info for support bundle
   appendHeaderToSupportBundle "POSTGRES NOW()"
   sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT now();" >> $SUPPORT_BUNDLE 2>&1
@@ -288,6 +294,7 @@ function supportbundle {
   appendHeaderToSupportBundle "POSTGRES Projects Count"
   sudo -u postgres PGPASSWORD=$db__password psql -h $db__host -d $db__database -p $db__port -U $db__username -w -c "SELECT count(*) as projects_count from \"Projects\"" >> $SUPPORT_BUNDLE 2>&1
 
+  echo "Collecting Docker information..."
   # DOCKER info
   appendHeaderToSupportBundle "DOCKER INFO"
   docker info >> $SUPPORT_BUNDLE 2>&1
@@ -301,7 +308,7 @@ function supportbundle {
   # append all docker logs to file
   for i in $( allinstances ); do
     appendHeaderToSupportBundle "DOCKER INSPECTION & LOGS"
-    docker logs $i >> $SUPPORT_BUNDLE 2>&1
+    docker logs --tail=1500 $i >> $SUPPORT_BUNDLE 2>&1
     echo "" >> $SUPPORT_BUNDLE
     docker inspect $i >> $SUPPORT_BUNDLE 2>&1
     echo "" >> $SUPPORT_BUNDLE
@@ -309,10 +316,16 @@ function supportbundle {
   
   appendHeaderToSupportBundle "END OF SUPPORT BUNDLE" 
   
+  # compress the file
+  echo "Compressing support bundle..."
+  cd $DATADIR
+  tar -zcf "$SUPPORT_BUNDLE_FILE_NAME.tar.gz" "$SUPPORT_BUNDLE_FILE_NAME"
+  rm $SUPPORT_BUNDLE_FILE_NAME
+
   echo "******************************************************************************************"
   echo "Support bundle generated at:"
   echo ""
-  echo "    \`$SUPPORT_BUNDLE\`"
+  echo "    \`$SUPPORT_BUNDLE.tar.gz\`"
   echo ""
   echo "Attach this file and email to support@fossa.io"
   echo "******************************************************************************************"
