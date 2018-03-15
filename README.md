@@ -1,3 +1,5 @@
+![FOSSA](https://raw.githubusercontent.com/fossas/fossa-installer/master/header.png)
+
 # Welcome to the FOSSA Installer
 
 ## Prerequisites
