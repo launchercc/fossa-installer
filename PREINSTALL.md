@@ -56,7 +56,7 @@ service docker restart
 FOSSA relies on Postgres 9.3+.  For evaluation purposes, we distribute a bundle with a built-in database container that's been pre-configured.  However, if you have an existing Postgre machine, you can configure FOSSA's extensions and setup like so:
 
 ```bash
-mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.4.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.5.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 
@@ -115,7 +115,7 @@ As part of the installer, you will be prompted for a `username, password and ema
 
 ```bash
 # Download and run the installer
-mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.16.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
+mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0.0.17.tar.gz | tar -zxv -C ~/fossa --strip-components=1 && chmod a+x ~/fossa/boot.sh && ln -sf ~/fossa/boot.sh /usr/local/bin/fossa && fossa init
 
 # Configure FOSSA first-time
 vi ~/fossa/config.env

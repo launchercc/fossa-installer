@@ -234,21 +234,21 @@ function supportbundle {
   appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
   cat ${TOP_DIR}/config.env >> $SUPPORT_BUNDLE 2>&1
 
-  # Check contents of /var/data/fossa
+  # Check contents of $DATADIR
   appendHeaderToSupportBundle "contents of /fossa/public/data"
-  ls -al /var/data/fossa >> $SUPPORT_BUNDLE 2>&1
+  ls -al $DATADIR >> $SUPPORT_BUNDLE 2>&1
   
-  # Check size of /var/data/fossa/.gitrepos
+  # Check size of $DATADIR/.gitrepos
   appendHeaderToSupportBundle "size of /fossa/public/data/.gitrepos"
-  du -sh /var/data/fossa/.gitrepos/ >> $SUPPORT_BUNDLE 2>&1
+  du -sh $DATADIR/.gitrepos/ >> $SUPPORT_BUNDLE 2>&1
 
   # Check cocoapods cache
   appendHeaderToSupportBundle "Cocoapods cache"
-  ls -al /var/data/fossa/.cocoapods/ >> $SUPPORT_BUNDLE 2>&1
+  ls -al $DATADIR/.cocoapods/ >> $SUPPORT_BUNDLE 2>&1
 
   # Check rubygems cache
   appendHeaderToSupportBundle "Rubygems cache"
-  ls -al /var/data/fossa/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
+  ls -al $DATADIR/.rubygems/ >> $SUPPORT_BUNDLE 2>&1
 
   echo "Collecting Postgres information..."
   # POSTGRES info for support bundle
