@@ -170,7 +170,7 @@ function start {
 
   if [ "$cocoapods_api__enabled" = true ]; then
     # Migrate Cocoapods API
-    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE ruby /app/scripts/cocoapods_setup
+    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec ruby /app/scripts/cocoapods_setup
     
     # Run Cocoapods API
     docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm -d --env-file ${TOP_DIR}/config.env -p 9292:9292 -v $DATADIR:/fossa/public/data -v /etc/fossa/.ssh:/root/.ssh $COCOAPODS_DOCKER_IMAGE bundle exec puma -C /app/config/production.rb
