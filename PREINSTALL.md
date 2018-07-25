@@ -1,6 +1,6 @@
 # FOSSA Pre-Install Instructions
 
-This guide will help you set up your machine's environment to install FOSSA on `Ubuntu 14.04 LTS`.  
+This guide will help you set up your machine's environment to install FOSSA on `Ubuntu 14.04 LTS`.
 
 Make sure you run this guide as a superuser via `sudo -s`.
 
@@ -56,7 +56,7 @@ service docker restart
 FOSSA relies on Postgres 9.3+.  For evaluation purposes, we distribute a bundle with a built-in database container that's been pre-configured.  However, if you have an existing Postgre machine, you can configure FOSSA's extensions and setup like so:
 
 ```bash
-mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.5.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.6.zip | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 
@@ -94,14 +94,14 @@ If you'd like FOSSA to integrate with Bitbucket Server/Stash, make sure you prep
 
 1. Location of Bitbucket Server on your network
 2. A bitbucket login for FOSSA (default username/password `fossabot`/`fossa123`) with...
-  - **Global read access** (i.e. to clone repos behind your firewall) 
-  - **Ability to create application links** via `Admin > Application Links` 
+  - **Global read access** (i.e. to clone repos behind your firewall)
+  - **Ability to create application links** via `Admin > Application Links`
 
 Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/bitbucket-server-(stash)` will have futher instructions on setup.
 
 #### JIRA Issue Tracker:
 
-To run the Atlassian JIRA setup, make sure you create a `fossabot` account with global access to create/edit tickets as well as an admin account to install webhooks. 
+To run the Atlassian JIRA setup, make sure you create a `fossabot` account with global access to create/edit tickets as well as an admin account to install webhooks.
 
 Once FOSSA is running, `{FOSSA_HOST}/docs/integrations/jira-issue-tracker` will have futher instructions on setup.
 
@@ -120,10 +120,10 @@ mkdir -p ~/fossa && curl -L https://github.com/fossas/fossa-installer/archive/v0
 # Configure FOSSA first-time
 vi ~/fossa/config.env
 
-# Run FOSSA 
+# Run FOSSA
 fossa start 4
 
-# Note: '4' refers to the number of analysis agents to launch with FOSSA.  
+# Note: '4' refers to the number of analysis agents to launch with FOSSA.
 # The more agents you run, the faster & greater your analysis load.
 # Recommended max agents = GB Avail. Mem/2, rounded down (i.e. 32GB RAM/2 = 16 agents)
 ```
