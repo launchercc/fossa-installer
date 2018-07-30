@@ -56,7 +56,7 @@ service docker restart
 FOSSA relies on Postgres 9.3+.  For evaluation purposes, we distribute a bundle with a built-in database container that's been pre-configured.  However, if you have an existing Postgre machine, you can configure FOSSA's extensions and setup like so:
 
 ```bash
-mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.6.zip | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
+mkdir -p ~/pg_fossa && curl -L https://github.com/fossas/pg_fossa/archive/v1.6.tar.gz | tar -zxv -C ~/pg_fossa --strip-components=1 && sudo cp -R ~/pg_fossa/* $( pg_config | grep SHAREDIR | awk '{print $3}' )/extension/
 
 sudo -u postgres psql -c "CREATE DATABASE fossa"
 
