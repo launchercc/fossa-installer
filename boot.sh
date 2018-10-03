@@ -3,12 +3,11 @@ TOP_DIR=${TOP_DIR-"$(dirname "$(readlink -f "$0")")"}
 DOCKER_IMAGE=${DOCKER_IMAGE-"quay.io/fossa/fossa:release"}
 DB_DOCKER_IMAGE=${DB_DOCKER_IMAGE-"quay.io/fossa/db:release"}
 COCOAPODS_DOCKER_IMAGE=${COCOAPODS_DOCKER_IMAGE-"quay.io/fossa/fossa-cocoapods-api:release"}
-PRE_040=${PRE_040-}
-PRE_050=${PRE_050-}
 DATADIR=${DATADIR-"/var/data/fossa"}
 DB_DATADIR=${DB_DATADIR-"/var/data/pg"}
 PREFLIGHTLOG=${PREFLIGHTLOG-"$DATADIR/fossa-preflight.log"}
 MIGRATIONLOG=${MIGRATIONLOG-"$DATADIR/fossa-migration.log"}
+SEEDLOG=${SEEDLOG-"$DATADIR/fossa-seed.log"}
 SERVERLOG=${SERVERLOG-"$DATADIR/fossa-server.log"}
 AGENTLOG=${AGENTLOG-"$DATADIR/fossa-agent.log"}
 
@@ -153,13 +152,10 @@ function start {
   fi;
 
   # Migrate database
-  if [[ ${PRE_040} ]]; then
-    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.4.0 2>&1 | tee $MIGRATIONLOG
-  elif [[ ${PRE_050} ]]; then
-    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE npm run migrate:pre-0.5.0 2>&1 | tee $MIGRATIONLOG
-  else
-    docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE npm run migrate 2>&1 | tee $MIGRATIONLOG
-  fi;
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE npm run migrate 2>&1 | tee $MIGRATIONLOG
+
+  # Seed database
+  docker run `if [ "$db__builtin" = true ]; then echo "--link=fossadb:db"; fi`  --rm --env-file ${TOP_DIR}/config.env -v $DATADIR:/fossa/public/data $DOCKER_IMAGE npm run seed 2>&1 | tee $SEEDLOG
 
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then # if the migration failed
     echo ""
@@ -229,6 +225,10 @@ function supportbundle {
   # get migration log
   appendHeaderToSupportBundle "MIGRATION LOGS"
   cat $MIGRATIONLOG >> $SUPPORT_BUNDLE 2>&1
+
+  # get seed log
+  appendHeaderToSupportBundle "SEED LOGS"
+  cat $SEEDLOG >> $SUPPORT_BUNDLE 2>&1
 
   # append current config to file
   appendHeaderToSupportBundle "CURRENT CONFIG.ENV"
